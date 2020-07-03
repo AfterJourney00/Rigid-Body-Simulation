@@ -10,6 +10,14 @@ public:
         this->Rotation = std::move(Rt);
         this->mass = m;
     }
+    
+    UpdateForce(std::vector(Eigen::Vector3f) f) {
+        Eigen::Vector3f Force_tmp = (0.0f, 0.0f, 0.0f);
+        for(int i = 0; i < f.size(); i++){
+            Force_tmp += f[i];           //compute the total Linear Force
+        }
+        this->Ft = Force_tmp;
+    }
 
 private:
     // const quantities
