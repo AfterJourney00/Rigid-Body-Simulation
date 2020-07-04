@@ -74,6 +74,14 @@ public:
         this->Tt = Force_tmp;        //update the angular force
     }
 
+    glm::vec3 get_transformation () {
+        return this->Transformation;
+    }
+
+    glm::mat3 get_rotation () {
+        return this->Rotation;
+    }
+
 private:
     //components
     std::vector<Particle> body_struct;
@@ -85,6 +93,7 @@ private:
     // sate variables
     glm::vec3 Transformation;
     glm::mat3 Rotation;
+
     glm::vec3 Pt;
     glm::vec3 Lt;
 

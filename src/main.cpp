@@ -17,6 +17,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <inc/rigidBody.hpp>
 
 #include "../inc/my_texture.h"
 #include "../inc/shader_m.h"
@@ -170,35 +171,6 @@ glm::vec3 calculate_tangent(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec2 
 }
 
 
-//This an function to get v, vt and vn. 
-void make_face(std::vector<float> v, std::vector<float> vt, std::vector<float> vn, std::vector<unsigned int> f,
-	std::vector<glm::vec3>& points, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& uvs, std::vector<glm::vec3>& tangent)
-{
-	if (f.size() % 3 != 0){
-	} else {
-        for (int i = 0; i < f.size()/3; i += 1)
-        {
-            // store one face
-            std::vector<glm::vec3> proPoints;
-            std::vector<glm::vec2> proUVs;
-            int k = i * 3;
-            for (int j = 0; j < 3; j++)
-            {
-                points.emplace_back(v[f[k + j] * 3], v[f[k + j] * 3 + 1], v[f[k + j] * 3 + 2]);
-                proPoints.emplace_back(v[f[k + j] * 3], v[f[k + j] * 3 + 1], v[f[k + j] * 3 + 2]);
-                normals.emplace_back(vn[f[k + j] * 3], vn[f[k + j] * 3 + 1], vn[f[k + j] * 3 + 2]);
-                uvs.emplace_back(vt[f[k + j] * 2], vt[f[k + j] * 2 + 1]);
-                proUVs.emplace_back(vt[f[k + j] * 2], vt[f[k + j] * 2 + 1]);
-            }
-            // use the data from one face to calculate the tangent space
-            glm::vec3 proTangent = calculate_tangent(proPoints[0], proPoints[1], proPoints[2], proUVs[0], proUVs[1], proUVs[2]);
-            // one tangent space for one point
-            tangent.push_back(proTangent);
-            tangent.push_back(proTangent);
-            tangent.push_back(proTangent);
-        }
-	}
-}
 
 void get_vec3(std::vector<float> list, std::vector<glm::vec3> &vec)
 {
@@ -219,7 +191,7 @@ void get_vec2(std::vector<float> list, std::vector<glm::vec2>& vec)
 
 void drawLights(Shader light_shader, glm::vec3 pointLightPositions[], unsigned int VAO) {
     light_shader.use();
-    // 电光源
+    // 点光源
     for (int i = 0;i < 4;i++) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, pointLightPositions[i]);
@@ -237,12 +209,37 @@ void drawLights(Shader light_shader, glm::vec3 pointLightPositions[], unsigned i
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
+void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int VAO) {
+    shader.use();
+
+    for (auto cube : cubes) {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, cube.get_transformation());
+        // todo: add rotation
+        shader.setMat4("model", model);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+}
+
 // 返回当前文件夹位置绝对值
 std::string GetCurrentWorkingDir() {
     char buff[FILENAME_MAX];
     GetCurrentDir( buff, FILENAME_MAX );
     std::string current_working_dir(buff);
     return current_working_dir;
+}
+
+// 生成rigid body的函数
+// 输入为初始位置
+RigidBody create_body(glm::vec3 init_pos) {
+    // todo: 创建一个rigidbody并且生成其中的点云等初始化数据
+    return RigidBody(glm::vec3(2,2,2), glm::mat4(1.0f), 150, std::vector<Particle> {});
+}
+
+void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
+    // todo: 计算所有的物体碰撞后改变的速度和角速度
+    // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
 }
 
 
@@ -252,9 +249,10 @@ int main()
     std::string root_dir = GetCurrentWorkingDir();
     int len = root_dir.length();
     // cmakeLists.txt所在文件目录绝对位置
-    root_dir = root_dir.substr(0, len - 18);
+    root_dir = root_dir.substr(0, len - 19);
     std::string model_dir = root_dir + "/model";
-    // std::cout<<model_dir<<std::endl;
+    // std::cout<<root_dir<<std::endl;
+    // todo: 如果这里print出来的model_dir或root_dir值不对，无法修改，可以改成绝对路径写死。
 
     // glfw: initialize and configure
     // ------------------------------
@@ -301,80 +299,6 @@ int main()
 	Shader lampShader((root_dir + "/src/lamp.vs").c_str(), (root_dir + "/src/lamp.fs").c_str());
 	
 
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// tiny::LoadObj is a function to load obj file. The output is shape_t and material_t.                         //
-	// "shape.mesh" is a mesh struct. "mesh.positions", "mesh.normals", "mesh.texcoords" corresponds to v,vn,vt.   //
-	// For example:                                                                                                //
-	// positions[0],positions[1],positions[2] -> v 0,0,1                                                           //
-	// positions[3],positions[4],positions[5] -> v 0,1,0                                                           //
-	// "mesh.indice" corresponds to f, but it is different from f. Each element is an index for all of v,vn,vt.    //
-	// positions[0],positions[1],positions[2] -> v 0,0,1  positions[0],positions[1],positions[2] -> v 0,0,1        //
-	// You can read tiny_obj_loader.h to get more specific information.                                            //
-	//                                                                                                             //
-	// I have write make_face for you.  It will return v, vt, vn in vec form (each element if for one point).      //
-	// These informations can help you to do normal mapping.  (You can calculate tangent here)                     //
-	// Since i did not assign uv for noraml map, you just need use vt as uv for normal map, but you will find it is//
-	//  ugly. So please render a box to show a nice normal mapping. (Do normal mapping on obj and box)             //
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string if_load_succeed = tinyobj::LoadObj(shapes, materials,
-	        (model_dir + "/pikaqiu.obj").c_str()
-	);
-    if (!if_load_succeed.empty()) {
-        std::cout<<"LOAD OBJ FILE ERROR: "<<if_load_succeed<<std::endl;
-    }
-
-
-	std::vector<unsigned int> obj_VBO_l, obj_VAO_l;
-    for (int i = 0; i < shapes.size(); i++)
-	{
-		
-		std::vector < glm::vec3 > out_vertices;
-		std::vector < glm::vec2 > out_uvs;
-		std::vector < glm::vec3 > out_normals;
-        std::vector < glm::vec3 > out_tangent;
-
-		// out_vertices, out_uvs, out_normals will get v, vt and vn.
-        make_face(shapes[i].mesh.positions, shapes[i].mesh.texcoords, shapes[i].mesh.normals, shapes[i].mesh.indices,
-                  out_vertices, out_normals, out_uvs, out_tangent);
-        float vertices[out_vertices.size() * 11];
-        for (int j = 0;j < out_vertices.size();j++) {
-            vertices[j*11] = out_vertices[j].x;
-            vertices[j*11 + 1] = out_vertices[j].y;
-            vertices[j*11 + 2] = out_vertices[j].z;
-            vertices[j*11 + 3] = out_normals[j].x;
-            vertices[j*11 + 4] = out_normals[j].y;
-            vertices[j*11 + 5] = out_normals[j].z;
-            vertices[j*11 + 6] = out_uvs[j].x;
-            vertices[j*11 + 7] = out_uvs[j].y;
-            vertices[j*11 + 8] = out_tangent[j].x;
-            vertices[j*11 + 9] = out_tangent[j].y;
-            vertices[j*11 + 10] = out_tangent[j].z;
-        }
-        obj_VAO_l.push_back(1);
-        obj_VBO_l.push_back(1);
-        glGenVertexArrays(1, &obj_VAO_l[i]);
-        glGenBuffers(1, &obj_VBO_l[i]);
-
-        glBindVertexArray(obj_VAO_l[i]);
-        glBindBuffer(GL_ARRAY_BUFFER, obj_VBO_l[i]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)nullptr);
-        glEnableVertexAttribArray(0);
-        // normals
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-        // texture coords
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-        // tangent
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float)));
-        glEnableVertexAttribArray(3);
-	}
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Render a box to show nice normal mapping.                                                                   //
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -458,15 +382,6 @@ int main()
             vertices_cube_0[(l + k) * 11 + 10] = proTangent.z;
         }
     }
-    /*
-    std::cout<<"vertices:";
-    for (int k = 0; k < 36 * 11; ++k) {
-        if (k % 11 == 0) {
-            std::cout<<std::endl;
-        }
-        std::cout<< vertices_cube_0[k]<<" ";
-    }
-     */
 
     unsigned int VBO, VAO;
     // the first argument is id
@@ -511,12 +426,22 @@ int main()
 	// Here we defined pointlights in shader and passed some parameter for you. You can take this as an example.   //
 	// Or you can change it if you like.                                                                           //
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     glm::vec3 pointLightPositions[] = {
             glm::vec3(5.7f,  5.2f,  2.0f),
             glm::vec3(2.3f, -3.3f, -4.0f),
             glm::vec3(-4.0f,  2.0f, -12.0f),
             glm::vec3(0.0f,  0.0f, -3.0f)
     };
+
+    // todo: 这行以上的代码都不用看了， 是设置cube的模型数据的, 下面的是最重要的!!!!
+
+
+    // 用来存cube的位置，每次循环位置都会改变。
+    std::vector<RigidBody> CubePositions;
+
+    // 以下为使用方法
+    CubePositions.push_back(create_body(glm::vec3(2.0f, 3.5f, 4.5f)));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -530,6 +455,7 @@ int main()
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         changePMV(my_shader, lampShader);
+        update_cube_positions(CubePositions, ((double) (1))/30);
 		//Update Camera Matrix
 		glFlush();
 		glEnable(GL_MULTISAMPLE);
@@ -586,6 +512,10 @@ int main()
 
         // 画出的光源都是没带normal map的砖头墙
         drawLights(lampShader, pointLightPositions, VAO);
+        drawCubes(my_shader, CubePositions, VAO);
+
+        // todo: 从天上生成新的cube落下
+        CubePositions.push_back(create_body(glm::vec3(2.0f, 3.5f, 4.5f)));
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -595,13 +525,6 @@ int main()
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
     glfwTerminate();
-
-    unsigned int arr[obj_VAO_l.size()];
-
-    std::copy(obj_VAO_l.begin(), obj_VAO_l.end(), arr);
-    glDeleteVertexArrays(obj_VAO_l.size(), arr);
-    std::copy(obj_VBO_l.begin(), obj_VBO_l.end(), arr);
-    glDeleteBuffers(obj_VBO_l.size(), arr);
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteVertexArrays(1, &lightVAO);
