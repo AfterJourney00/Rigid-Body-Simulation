@@ -1,23 +1,52 @@
-cmake_minimum_required(VERSION 3.0.0)
-project(Rigid-body-simulation VERSION 0.1.0)
-set(CMAKE_CXX_STANDARD 11)
+cmake_minimum_required(VERSION 3.15)
+project(opengl-basic)
 
-# Add Include Path
-include_directories(
-	src
-	head
-	include
-)
+find_package(OpenGL REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIR})
 
-# find source codes
-# Add source files
-file(GLOB_RECURSE SOURCE_FILES 
-	src/*.c
-    src/*.cpp
-    head/*.hpp
-	src/*.cc)
-if(WIN32)
-add_definitions(-D_AMD64_)
+set(CMAKE_CXX_STANDARD 14)
+
+file(GLOB_RECURSE SOURCE_FILES
+		inc/*.c
+		inc/*.h
+		inc/*.hpp
+		src/*.cc
+		src/*.cpp
+		src/*.h)
+
+
+
+add_executable(opengl-basic ${SOURCE_FILES})
+
+# specify the search location
+set( _glfw3_HEADER_SEARCH_DIRS "/usr/local/include")
+set( _glfw3_LIB_SEARCH_DIRS "/usr/local/lib")
+set( glm_dirs "./glm")
+
+set( _glfw3_ENV_ROOT $ENV{GLFW3_ROOT} )
+if( NOT GLFW3_ROOT AND _glfw3_ENV_ROOT )
+	set(GLFW3_ROOT ${_glfw3_ENV_ROOT} )
 endif()
-add_executable(path-tracing ${SOURCE_FILES})
 
+# Put user specified location at beginning of search
+if( GLFW3_ROOT )
+	list( INSERT _glfw3_HEADER_SEARCH_DIRS 0 "${GLFW3_ROOT}/include" )
+	list( INSERT _glfw3_LIB_SEARCH_DIRS 0 "${GLFW3_ROOT}/lib" )
+endif()
+
+# Search for the header
+FIND_PATH(GLFW3_INCLUDE_DIR "GLFW/glfw3.h" PATHS ${_glfw3_HEADER_SEARCH_DIRS})
+
+# Search for the library
+FIND_LIBRARY(GLFW3_LIBRARY NAMES libglfw.3.4.dylib PATHS ${_glfw3_LIB_SEARCH_DIRS})
+
+#include header file directory
+include_directories(${GLFW3_INCLUDE_DIR})
+include_directories(${glm_dirs})
+include_directories("./")
+
+#include library file directory
+link_directories(${_glfw3_LIB_SEARCH_DIRS})
+
+#link library file
+target_link_libraries(opengl-basic ${GLFW3_LIBRARY})
