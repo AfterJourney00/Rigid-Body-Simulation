@@ -216,7 +216,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     for (auto cube : cubes) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, cube.get_transformation());
-        //model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
+        model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
         shader.setMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -561,7 +561,7 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
     }
     std::vector<Contact> contacts;
     // step2: 计算碰撞点
-    for (auto cube : cubes) {
+    for (auto &cube : cubes) {
         while (!cube.possible_collision.empty()) {
             RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
             Contact tem_contact = check_collision(tem, cube);
@@ -580,19 +580,19 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
     }
 
     // step3: 计算动量变化
-    for (auto con : contacts) {
+    for (auto &con : contacts) {
         process_collision(con);
     }
 
     // step4： 根据动量移动物体的transformation和Wt
-    for (int i = 0; i < cubes.size();i++) {
+    for (auto &cube: cubes) {
         // 重力和地板
         //std::cout<<"before inside: "<<std::endl;
         //print_vec3(cubes[0].get_Pt());
-        process_gravity_floor(cubes[i]);
+        process_gravity_floor(cube);
         //std::cout<<"after inside1: "<<std::endl;
         //print_vec3(cubes[0].get_Pt());
-        move_bodies(cubes[i]);
+        move_bodies(cube);
         //std::cout<<"after inside2: "<<std::endl;
         //print_vec3(cubes[0].get_Pt());
     }

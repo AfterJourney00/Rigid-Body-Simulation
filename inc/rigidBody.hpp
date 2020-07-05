@@ -13,14 +13,15 @@ public:
         this->Transformation = Xt;
         this->mass = m;
         this->Pt = glm::vec3(0.0f);
-        this->Wt = glm::vec3(0.0f, 0.0f, 1.0f);
+        this->Lt = glm::vec3(0.0f, 1.0f, 0.0f);
+        this->angle = 0;
     }
 
     RigidBody(glm::vec3 Xt, double m, glm::vec3 rotate, float an) {
         this->Transformation = Xt;
         this->mass = m;
         this->Pt = glm::vec3(0.0f);
-        this->Wt = rotate;
+        this->Lt = rotate;
         this->angle = an;
     }
 
@@ -29,7 +30,7 @@ public:
     }
 
     glm::vec3 get_rotation_dir () {
-        return glm::normalize(this->Wt);
+        return glm::normalize(this->Lt);
     }
 
 	float get_rotation_angle() {
