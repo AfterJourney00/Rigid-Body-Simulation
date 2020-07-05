@@ -1,19 +1,10 @@
 
 #include <glad/glad.h>  
-#include <OpenGL/glu.h>
 #include <GLFW/glfw3.h>
 #include "glm/gtc/matrix_transform.hpp"
 #include <iostream>
 #include <vector>
 #include <inc/camera.h>
-
-#ifdef WINDOWS
-#include <direct.h>
-#define GetCurrentDir _getcwd
-#else
-#include <unistd.h>
-#define GetCurrentDir getcwd
-#endif
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -222,13 +213,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     }
 }
 
-// 返回当前文件夹位置绝对值
-std::string GetCurrentWorkingDir() {
-    char buff[FILENAME_MAX];
-    GetCurrentDir( buff, FILENAME_MAX );
-    std::string current_working_dir(buff);
-    return current_working_dir;
-}
+
 
 // 生成rigid body的函数
 // 输入为初始位置
@@ -246,10 +231,9 @@ void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
 
 int main()
 {
-    std::string root_dir = GetCurrentWorkingDir();
+    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
     int len = root_dir.length();
     // cmakeLists.txt所在文件目录绝对位置
-    root_dir = root_dir.substr(0, len - 19);
     std::string model_dir = root_dir + "/model";
     // std::cout<<root_dir<<std::endl;
     // todo: 如果这里print出来的model_dir或root_dir值不对，无法修改，可以改成绝对路径写死。
