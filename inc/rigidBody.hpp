@@ -78,6 +78,7 @@ public:
 
 	void setIbody(double mass, float r) {
 		this->Ibody = mass * powf(r,2) / 6.0f;		//正方体转动惯量的公式
+        this->Iinv = 1 / Ibody;
 	}
 
 	void UpdateStates(glm::vec3 vt, glm::vec3 wt) {		//物体状态改变更新函数
@@ -112,7 +113,7 @@ private:
     glm::vec3 Lt;
 
     // Derived quantities
-    glm::mat3 Iinv;
+    float Iinv;
     glm::vec3 Vt;
     glm::vec3 Wt;
 	float angle;
