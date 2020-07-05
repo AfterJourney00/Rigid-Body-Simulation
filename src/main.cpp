@@ -42,6 +42,12 @@ float currentFrame;
 
 Camera *camera;
 
+void print_vec3(glm::vec3 cube) {
+    std::cout<<cube.x<<std::endl;
+    std::cout<<cube.y<<std::endl;
+    std::cout<<cube.z<<std::endl;
+}
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -81,7 +87,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void initPMV(Shader my_shader, Shader light_shader, const glm::vec3 pointLightPositions[]) {
-    camera = new Camera (glm::vec3(0.0f, 0.0f, 3.0f));
+    camera = new Camera (glm::vec3(0.0f, 4.0f, 3.0f));
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
     my_shader.use();
@@ -210,7 +216,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     for (auto cube : cubes) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, cube.get_transformation());
-        model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
+        //model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
         shader.setMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -449,7 +455,8 @@ Contact check_collision(RigidBody &a, RigidBody &b) {
 }
 
 void process_gravity_floor(RigidBody &body) {
-    if (body.get_transformation().z < 0.6) {
+    if (body.get_transformation().y < 0.6) {
+        std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
         std::vector<glm::vec3> points;
@@ -500,7 +507,7 @@ void process_gravity_floor(RigidBody &body) {
         }
 
         // 更新动量
-        glm::vec3 delt_v = glm::vec3(0, 0, 1.0f);
+        glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f);
         // 反弹为0.3的重力
         delt_v *= GRAVITY * time_interval * 0.3;
         glm::vec3 J = delt_v * body.get_mass();
@@ -512,10 +519,15 @@ void process_gravity_floor(RigidBody &body) {
 
     } else {
         // 物体没有接触地面
-        glm::vec3 delt_v = glm::vec3(0, 0, -1.0f);
-        delt_v *= GRAVITY * time_interval;
+        // std::cout<<"gravity"<<std::endl;
+        glm::vec3 delt_v = glm::vec3(0, -1.0f, 0.0f);
+        delt_v *= GRAVITY * time_interval * 0.01;
         glm::vec3 J = delt_v * body.get_mass();
+        //std::cout<<"before: "<<std::endl;
+        //print_vec3(body.get_Pt());
         body.sum_Pt(J);
+        //std::cout<<"after: "<<std::endl;
+        //print_vec3(body.get_Pt());
     }
 }
 
@@ -527,10 +539,11 @@ void move_bodies(RigidBody &body) {
 }
 
 
-void update_cube_positions(std::vector<RigidBody> cubes) {
+void update_cube_positions(std::vector<RigidBody> &cubes) {
     // todo: 计算所有的物体碰撞后改变的速度和角速度
     // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
 
+    //std::cout<<"new round"<<std::endl;
     // step1:
     for (int i = 0; i < cubes.size(); i++) {
         for (int j = i + 1; j < cubes.size(); j++) {
@@ -567,9 +580,16 @@ void update_cube_positions(std::vector<RigidBody> cubes) {
     }
 
     // step4： 根据动量移动物体的transformation和Wt
-    for (auto cube : cubes) {
-        process_gravity_floor(cube);
-        move_bodies(cube);
+    for (int i = 0; i < cubes.size();i++) {
+        // 重力和地板
+        //std::cout<<"before inside: "<<std::endl;
+        //print_vec3(cubes[0].get_Pt());
+        process_gravity_floor(cubes[i]);
+        //std::cout<<"after inside1: "<<std::endl;
+        //print_vec3(cubes[0].get_Pt());
+        move_bodies(cubes[i]);
+        //std::cout<<"after inside2: "<<std::endl;
+        //print_vec3(cubes[0].get_Pt());
     }
 }
 
@@ -756,7 +776,7 @@ int main()
 
     glm::vec3 pointLightPositions[] = {
             glm::vec3(5.7f,  5.2f,  2.0f),
-            glm::vec3(2.3f, -3.3f, -4.0f),
+            glm::vec3(0.0f, 2.3f, 0.0f),
             glm::vec3(-4.0f,  2.0f, -12.0f),
             glm::vec3(0.0f,  0.0f, -3.0f)
     };
@@ -768,7 +788,7 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(2.0f, 3.5f, 4.5f)));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f)));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -783,7 +803,12 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         changePMV(my_shader, lampShader);
 
-        // update_cube_positions(CubePositions);
+        //std::cout<<"before: "<<std::endl;
+        //print_vec3(CubePositions[0].get_transformation());
+        update_cube_positions(CubePositions);
+        //std::cout<<"after: "<<std::endl;
+        //print_vec3(CubePositions[0].get_transformation());
+
 
         //Update Camera Matrix
         glFlush();
@@ -805,9 +830,11 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        // 画地板
         my_shader.use();
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.5f, -1.5f, -1.5f));
+        model = glm::scale(model, glm::vec3(20.0f));
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
         my_shader.setMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);

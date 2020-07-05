@@ -12,6 +12,8 @@ public:
     RigidBody(glm::vec3 Xt,  double m) {
         this->Transformation = Xt;
         this->mass = m;
+        this->Pt = glm::vec3(0.0f);
+        this->Wt = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     glm::vec3 get_transformation () {
@@ -50,7 +52,10 @@ public:
     }
 
     void sum_Pt(glm::vec3 new_p) {
+        //std::cout<<new_p.z<<std::endl;
+        //std::cout<<Pt.z<<std::endl;
         this->Pt += new_p;
+        //std::cout<<Pt.z<<std::endl;
     }
 
     void sum_Lt(glm::vec3 new_l) {
@@ -70,8 +75,8 @@ public:
 		this->Vt = vt;					//更新 linear velocity
 		this->Wt = wt;					//更新 angular velocity
 
-		this->Transformation = vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
-		this->angle = glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
+		this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
+		this->angle += glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
 	}
 
     glm::mat4 to_world() {
