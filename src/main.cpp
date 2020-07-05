@@ -500,8 +500,9 @@ void process_gravity_floor(RigidBody &body) {
         }
 
         // 更新动量
-        glm::vec3 delt_v = glm::vec3(0, 0, -1.0f);
-        delt_v *= GRAVITY * time_interval;
+        glm::vec3 delt_v = glm::vec3(0, 0, 1.0f);
+        // 反弹为0.3的重力
+        delt_v *= GRAVITY * time_interval * 0.3;
         glm::vec3 J = delt_v * body.get_mass();
         body.sum_Pt(J);
 
@@ -576,8 +577,6 @@ void update_cube_positions(std::vector<RigidBody> cubes) {
 
 int main()
 {
-
-
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
