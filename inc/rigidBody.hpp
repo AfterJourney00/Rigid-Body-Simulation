@@ -16,6 +16,14 @@ public:
         this->Wt = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
+    RigidBody(glm::vec3 Xt, double m, glm::vec3 rotate, float an) {
+        this->Transformation = Xt;
+        this->mass = m;
+        this->Pt = glm::vec3(0.0f);
+        this->Wt = rotate;
+        this->angle = an;
+    }
+
     glm::vec3 get_transformation () {
         return this->Transformation;
     }

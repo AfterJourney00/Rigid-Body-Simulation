@@ -507,9 +507,14 @@ void process_gravity_floor(RigidBody &body) {
         }
 
         // 更新动量
+
+        if (body.get_Pt().y > 2) {
+            // 初次碰撞瞬间失去一部分动量
+            body.sum_Pt(glm::vec3(0,-(body.get_Pt().y - 2),0));
+        }
         glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f);
-        // 反弹为0.3的重力
-        delt_v *= GRAVITY * time_interval * 0.3;
+        // 反弹为0.5的重力
+        delt_v *= GRAVITY * time_interval * 0.5f;
         glm::vec3 J = delt_v * body.get_mass();
         body.sum_Pt(J);
 
@@ -803,11 +808,11 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         changePMV(my_shader, lampShader);
 
-        //std::cout<<"before: "<<std::endl;
-        //print_vec3(CubePositions[0].get_transformation());
+        std::cout<<"before: "<<std::endl;
+        print_vec3(CubePositions[0].get_Pt());
         update_cube_positions(CubePositions);
-        //std::cout<<"after: "<<std::endl;
-        //print_vec3(CubePositions[0].get_transformation());
+        std::cout<<"after: "<<std::endl;
+        print_vec3(CubePositions[0].get_Pt());
 
 
         //Update Camera Matrix
