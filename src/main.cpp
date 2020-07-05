@@ -229,21 +229,29 @@ RigidBody create_body(glm::vec3 init_pos) {
 
 // 返回值修改a，b中的成员变量
 void process_collision(Contact con) {
-    // todo: 处理碰撞对物体影响
     if (con.is_valid) {
+        glm::vec3 normal;
         if (con.is_face_vertex) {
-            glm::vec3 pat = con.a->get_vt() + con.a->get_wt() * (con.particle_position - con.a->get_transformation());
-            glm::vec3 pbt=con.b->get_vt() + con.b->get_wt() * (con.particle_position - con.b->get_transformation());
-            float v_rel;
-            v_rel = glm::dot(con.face_normal, (pat - pbt));
-            glm::vec3 Ja, Jb;
-            glm::vec3 det_va = v_rel - con.a->get_vt();
-            glm::vec3 det_vb = v_rel - con.b->get_vt();
-            Ja = det_va * con.a->get_mass();
-            Jb = det_vb * con.a->get_mass();
-            glm::vec3 tao_a = glm::cross((con.particle_position - con.a->get_transformation()), Ja);
-            glm::vec3 tao_b = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
+            normal = glm::normalize(con.face_normal);
+        } else {
+            normal = glm::normalize(glm::cross(con.edge1, con.edge2));
         }
+        glm::vec3 pat = con.a->get_vt() + con.a->get_wt() * (con.particle_position - con.a->get_transformation());
+        glm::vec3 pbt= con.b->get_vt() + con.b->get_wt() * (con.particle_position - con.b->get_transformation());
+        float v_rel;
+        v_rel = glm::dot(normal, (pat - pbt));
+        glm::vec3 Ja, Jb;
+        glm::vec3 det_va = v_rel * normal - con.a->get_vt();
+        glm::vec3 det_vb = -v_rel * normal - con.b->get_vt();
+        Ja = det_va / con.a->get_mass();
+        Jb = det_vb / con.a->get_mass();
+        glm::vec3 tao_a_impulse = glm::cross((con.particle_position - con.a->get_transformation()), Ja);
+        glm::vec3 tao_b_impulse = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
+        // 更新body a和b的动量和角动量
+        con.a->sum_Pt(Ja);
+        con.a->sum_Lt(tao_a_impulse);
+        con.b->sum_Pt(Jb);
+        con.b->sum_Lt(tao_b_impulse);
     }
 }
 

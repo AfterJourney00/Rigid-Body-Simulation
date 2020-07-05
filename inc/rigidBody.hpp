@@ -96,10 +96,18 @@ public:
         return mass;
     }
 
+    void sum_Pt(glm::vec3 new_p) {
+        this->Pt += new_p;
+    }
+
+    void sum_Lt(glm::vec3 new_l) {
+        // 角动量变化值 = I−1(t) * τ impulse
+        this->Lt += Iinv * new_l;
+    }
+
 
 	// һ��rigidbody��Ӧһ����ײ��
 	std::vector<RigidBody> possible_collision;
-	std::vector<RigidBody> collision_particle;
 private:
     //components
     std::vector<Particle> body_struct;
