@@ -105,6 +105,13 @@ public:
         this->Lt += Iinv * new_l;
     }
 
+    glm::mat4 to_world() {
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, this->get_transformation());
+        model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        return model;
+    }
+
 
 	// һ��rigidbody��Ӧһ����ײ��
 	std::vector<RigidBody> possible_collision;
