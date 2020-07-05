@@ -312,7 +312,8 @@ bool face_vertex_interation(Contact f_v, glm::vec3 p, glm::vec3 g, glm::vec3 a, 
 
 Contact check_collision(RigidBody &a, RigidBody &b) {
     // todo: 处理碰撞对物体影响
-    RigidBody* aa, * bb;
+    /*RigidB
+ody* aa, * bb;
     aa = &a;
     bb = &b;
     int cout = 0;
@@ -451,12 +452,187 @@ Contact check_collision(RigidBody &a, RigidBody &b) {
         aa = &b;
         bb = &a;
     }
-    return f_v;
+    return f_v;*/
+	RigidBody* aa, *bb;
+	aa = &a;
+	bb = &b;
+	int cout = 0;
+	Contact f_v;
+	f_v.a = &a;
+	f_v.b = &b;
+	while (cout < 2) {
+		glm::mat4 model_a, model_b;
+		model_a = glm::translate(model_a, (*aa).get_transformation());
+		model_a = glm::rotate(model_a, glm::radians((*aa).get_rotation_angle()), (*aa).get_rotation_dir());
+		model_b = glm::translate(model_b, (*bb).get_transformation());
+		model_b = glm::rotate(model_b, glm::radians((*bb).get_rotation_angle()), (*bb).get_rotation_dir());
+		glm::vec3 face_center[6];
+		face_center[0] = glm::vec3(0.5f, 0.0f, 0.0f);
+		face_center[1] = glm::vec3(-0.5f, 0.0f, 0.0f);
+		face_center[2] = glm::vec3(0.0f, 0.5f, 0.0f);
+		face_center[3] = glm::vec3(0.0f, -0.5f, 0.0f);
+		face_center[4] = glm::vec3(0.0f, 0.0f, 0.5f);
+		face_center[5] = glm::vec3(0.0f, 0.0f, -0.5f);
+
+		// 判断a是面，b是点
+		glm::vec3 temp;
+		for (int i = 0; i < 6; i++) {
+			temp = face_center[i];
+			face_center[i].x = (model_a * glm::vec4(temp, 1.0f)).x;
+			face_center[i].y = (model_a * glm::vec4(temp, 1.0f)).y;
+			face_center[i].z = (model_a * glm::vec4(temp, 1.0f)).z;
+		}
+		// local face_point
+
+		std::vector<std::vector<glm::vec3>> face_point;
+		std::vector<glm::vec3>tmp;
+		tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
+		tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
+		face_point.push_back(tmp);
+
+		tmp.clear();
+
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
+		face_point.push_back(tmp);
+
+		tmp.clear();
+
+		tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
+		tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
+		face_point.push_back(tmp);
+
+		tmp.clear();
+
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		face_point.push_back(tmp);
+
+		tmp.clear();
+		tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
+		tmp.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
+		face_point.push_back(tmp);
+
+		tmp.clear();
+		tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
+		tmp.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
+		face_point.push_back(tmp);
+
+		//local vertex
+		std::vector<glm::vec3> point;
+		point.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
+		point.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
+		point.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
+		point.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
+		point.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
+		point.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
+		point.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
+		point.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
+
+
+		for (int i = 0; i < 6; i++) {
+			for (int j = 0; j < 4; j++) {
+				temp = face_point[i][j];
+				face_point[i][j].x = (model_a * glm::vec4(temp, 1.0f)).x;
+				face_point[i][j].y = (model_a * glm::vec4(temp, 1.0f)).y;
+				face_point[i][j].z = (model_a * glm::vec4(temp, 1.0f)).z;
+			}
+		}
+
+		std::vector<glm::vec3> face_center_min;
+		std::vector<int> face_index_min;
+		face_center_min.push_back(face_center[0]);
+		face_index_min.push_back(0);
+		face_center_min.push_back(face_center[1]);
+		face_index_min.push_back(1);
+		face_center_min.push_back(face_center[2]);
+		face_index_min.push_back(2);
+		float max_length;
+		int max_index;
+		max_length = glm::length(face_center_min[0] - (*bb).get_transformation());
+		max_index = 0;
+		for (int i = 1; i < 3; i++) {
+			if (glm::length(face_center_min[i] - (*bb).get_transformation()) > max_length) {
+				max_length = glm::length(face_center_min[i] - (*bb).get_transformation());
+				max_index = i;
+			}
+		}
+		for (int i = 0; i < 3; i++) {
+			if (glm::length(face_center[i + 3] - (*bb).get_transformation()) < max_length) {
+				face_center_min[max_index] = face_center[i + 3];
+				face_index_min[max_index] = i + 3;
+				max_length = glm::length(face_center_min[0] - (*bb).get_transformation());
+				max_index = 0;
+				for (int j = 0; j < 3; j++) {
+					if (glm::length(face_center_min[j] - (*bb).get_transformation()) > max_length) {
+						max_length = glm::length(face_center_min[j] - (*bb).get_transformation());
+						max_index = j;
+					}
+				}
+			}
+		}
+
+
+		glm::vec3 g = glm::vec3(0.0f, 0.0f, 0.0f);
+		temp = g;
+		g.x = (model_b * glm::vec4(temp, 1.0f)).x;
+		g.y = (model_b * glm::vec4(temp, 1.0f)).y;
+		g.z = (model_b * glm::vec4(temp, 1.0f)).z;
+
+		for (int i = 0; i < 8; i++) {
+			temp = point[i];
+			point[i].x = (model_b * glm::vec4(temp, 1.0f)).x;
+			point[i].y = (model_b * glm::vec4(temp, 1.0f)).y;
+			point[i].z = (model_b * glm::vec4(temp, 1.0f)).z;
+		}
+
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 3; j++) {
+				if (face_vertex_interation(f_v, point[i], g, face_point[face_index_min[j]][0], face_point[face_index_min[j]][1], face_point[face_index_min[j]][2], face_point[face_index_min[j]][3])) {
+					if (face_index_min[j] == 0) {
+						f_v.face_normal = glm::vec3(1.0f, 0.0f, 0.0f);
+					}
+					else if (face_index_min[j] == 1) {
+						f_v.face_normal = glm::vec3(-1.0f, 0.0f, 0.0f);
+					}
+					else if (face_index_min[j] == 2) {
+						f_v.face_normal = glm::vec3(0.0f, 1.0f, 0.0f);
+					}
+					else if (face_index_min[j] == 3) {
+						f_v.face_normal = glm::vec3(0.0f, -1.0f, 0.0f);
+					}
+					else if (face_index_min[j] == 4) {
+						f_v.face_normal = glm::vec3(0.0f, 0.0f, 1.0f);
+					}
+					else if (face_index_min[j] == 5) {
+						f_v.face_normal = glm::vec3(0.0f, 0.0f, -1.0f);
+					}
+					break;
+				}
+			}
+		}
+		cout += 1;
+		aa = &b;
+		bb = &a;
+	}
+	return f_v;
 }
 
 void process_gravity_floor(RigidBody &body) {
     if (body.get_transformation().y < 0.6) {
-        std::cout<<"bounce"<<std::endl;
+        //std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
         std::vector<glm::vec3> points;
@@ -561,7 +737,9 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
     }
     std::vector<Contact> contacts;
     // step2: 计算碰撞点
+	int i = 1;
     for (auto &cube : cubes) {
+		std::cout << "i: "<< i << std::endl;
         while (!cube.possible_collision.empty()) {
             RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
             Contact tem_contact = check_collision(tem, cube);
@@ -577,6 +755,7 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
             tem.possible_collision.erase(tem.possible_collision.begin() + i);
             cube.possible_collision.pop_back();
         }
+		i++;
     }
 
     // step3: 计算动量变化
@@ -602,7 +781,8 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
 
 int main()
 {
-    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
+	//std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
+	std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -793,7 +973,8 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f)));
+	CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f)));
+	CubePositions.push_back(create_body(glm::vec3(0.0f, 7.0f, 0.0f)));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -808,10 +989,10 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         changePMV(my_shader, lampShader);
 
-        std::cout<<"before: "<<std::endl;
+        //std::cout<<"before: "<<std::endl;
         print_vec3(CubePositions[0].get_Pt());
         update_cube_positions(CubePositions);
-        std::cout<<"after: "<<std::endl;
+        //std::cout<<"after: "<<std::endl;
         print_vec3(CubePositions[0].get_Pt());
 
 
