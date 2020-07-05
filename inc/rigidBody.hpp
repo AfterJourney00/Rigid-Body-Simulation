@@ -136,6 +136,7 @@ private:
 
 class Contact {
 public:
+    Contact () {};
 	RigidBody *a;
 	RigidBody *b;
 
