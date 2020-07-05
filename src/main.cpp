@@ -243,8 +243,8 @@ void process_collision(Contact con) {
         glm::vec3 Ja, Jb;
         glm::vec3 det_va = v_rel * normal - con.a->get_vt();
         glm::vec3 det_vb = -v_rel * normal - con.b->get_vt();
-        Ja = det_va / con.a->get_mass();
-        Jb = det_vb / con.a->get_mass();
+        Ja = det_va * con.a->get_mass();
+        Jb = det_vb * con.a->get_mass();
         glm::vec3 tao_a_impulse = glm::cross((con.particle_position - con.a->get_transformation()), Ja);
         glm::vec3 tao_b_impulse = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
         // 更新body a和b的动量和角动量
