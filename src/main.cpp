@@ -15,6 +15,8 @@
 #include "tiny_obj_loader.h"
 #include <math.h>
 
+#define MASS 10
+#define GRAVITY 10
 
 
 /*-----------------------------------------------------------------------*/
@@ -221,9 +223,10 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 // 输入为初始位置
 RigidBody create_body(glm::vec3 init_pos) {
     // todo: 创建一个rigidbody并且生成其中等初始化数据
-
-
-    return RigidBody(glm::vec3(2,2,2), glm::mat4(1.0f), 150);
+	RigidBody new_body(init_pos, MASS);		//初始时init_pos为x(t)，质量设置为10
+	new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
+	new_body.setIbody(MASS, 1.0f);
+    return new_body;
 }
 
 

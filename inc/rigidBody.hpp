@@ -50,9 +50,8 @@ private:
 
 class RigidBody {
 public:
-    RigidBody(glm::vec3 Xt, glm::mat4 Rt, double m) {
+    RigidBody(glm::vec3 Xt,  double m) {
         this->Transformation = Xt;
-        this->Rotation = Rt;
         this->mass = m;
     }
     
@@ -105,6 +104,14 @@ public:
         this->Lt += Iinv * new_l;
     }
 
+	void setForce(glm::vec3 f) {
+		this->Ft = f;
+	}
+
+	void setIbody(double mass, float r) {
+		this->Ibody = mass * powf(r,2) / 6.0f;		//正方体转动惯量的公式
+	}
+
     glm::mat4 to_world() {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, this->get_transformation());
@@ -121,7 +128,7 @@ private:
 
     // const quantities
     double mass;
-    glm::mat3 Ibody;
+    double Ibody;
 
     // sate variables
     glm::vec3 Transformation;
