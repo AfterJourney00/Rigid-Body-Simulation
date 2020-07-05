@@ -50,11 +50,10 @@ private:
 
 class RigidBody {
 public:
-    RigidBody(glm::vec3 Xt, glm::mat4 Rt, double m, std::vector<Particle> particles) {
+    RigidBody(glm::vec3 Xt, glm::mat4 Rt, double m) {
         this->Transformation = Xt;
         this->Rotation = Rt;
         this->mass = m;
-        this->body_struct = std::move(particles);      //put the particles into the rigid-body
     }
     
     void UpdateForce(std::vector<glm::vec3> f) {
@@ -78,10 +77,18 @@ public:
         return this->Transformation;
     }
 
-    glm::mat3 get_rotation () {
-        return this->Rotation;
+    glm::vec3 get_rotation_dir () {
+        return glm::normalize(this->Wt);
     }
 
+	float get_rotation_angle() {
+		return this->angle;
+	}
+
+
+	// 一个rigidbody对应一个相撞点
+	std::vector<RigidBody> possible_collision;
+	std::vector<RigidBody> collision_particle;
 private:
     //components
     std::vector<Particle> body_struct;
@@ -101,8 +108,24 @@ private:
     glm::mat3 Iinv;
     glm::vec3 Vt;
     glm::vec3 Wt;
+	float angle;
 
     // computed quantities
     glm::vec3 Ft;
     glm::vec3 Tt;
+};
+
+class Contact {
+public:
+	RigidBody *a;
+	RigidBody *b;
+
+	glm::vec3 particle_position;
+	glm::vec3 face_normal;
+
+	glm::vec3 edge1;
+	glm::vec3 edge2;
+
+	bool is_face_vertex;
+	bool is_valid;
 };

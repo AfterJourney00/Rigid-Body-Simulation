@@ -13,6 +13,7 @@
 #include "../inc/my_texture.h"
 #include "../inc/shader_m.h"
 #include "tiny_obj_loader.h"
+#include <math.h>
 
 
 
@@ -206,6 +207,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     for (auto cube : cubes) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, cube.get_transformation());
+		model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
         // todo: add rotation
         shader.setMat4("model", model);
         glBindVertexArray(VAO);
@@ -218,13 +220,70 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 // 生成rigid body的函数
 // 输入为初始位置
 RigidBody create_body(glm::vec3 init_pos) {
-    // todo: 创建一个rigidbody并且生成其中的点云等初始化数据
-    return RigidBody(glm::vec3(2,2,2), glm::mat4(1.0f), 150, std::vector<Particle> {});
+    // todo: 创建一个rigidbody并且生成其中等初始化数据
+
+
+    return RigidBody(glm::vec3(2,2,2), glm::mat4(1.0f), 150);
 }
 
 void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
     // todo: 计算所有的物体碰撞后改变的速度和角速度
     // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
+
+	// step1:
+	for (int i = 0; i < cubes.size(); i++) {
+		for (int j = i + 1; j < cubes.size(); j++) {
+			float dis = glm::length(cubes[i].get_transformation() - cubes[j].get_transformation());
+			if (dis < sqrtf(3)) {
+				cubes[i].possible_collision.push_back(cubes[j]);
+				cubes[j].possible_collision.push_back(cubes[i]);
+			}
+		}
+	}
+	std::vector<Contact> contacts;
+	// step2: 计算碰撞点
+	for (auto cube : cubes) {
+		while (!cube.possible_collision.empty()) {
+			RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
+			Contact tem_contact = check_collision(tem, cube);
+			if (tem_contact.is_valid) {
+				contacts.push_back(tem_contact);
+			}
+			int i = 0;
+			for (i = 0; i < tem.possible_collision.size(); i++) {
+				if (tem.possible_collision[i].get_transformation == cube.get_transformation) {
+					break;
+				}
+			}
+			tem.possible_collision.erase[i];
+			cube.possible_collision.pop_back();
+		}
+	}
+
+	// step3: 计算动量变化
+	for (auto con : contacts) {
+		process_collision(con);
+	}
+
+	// step4： 根据动量移动物体的transformation和Wt
+	for (auto cube : cubes) {
+		move_bodies(cube);
+	}
+}
+
+// 返回值修改a，b中的成员变量
+void process_collision(Contact con) {
+	// todo: 处理碰撞对物体影响
+
+}
+
+Contact check_collision(RigidBody &a, RigidBody &b) {
+	// todo: 处理碰撞对物体影响
+
+}
+
+void move_bodies(RigidBody &body) {
+	// 根据动量角动量移动物体
 }
 
 
