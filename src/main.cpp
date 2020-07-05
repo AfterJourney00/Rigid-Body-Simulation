@@ -1,5 +1,5 @@
 
-#include <glad/glad.h>  
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "glm/gtc/matrix_transform.hpp"
 #include <iostream>
@@ -15,8 +15,6 @@
 #include "tiny_obj_loader.h"
 #include <math.h>
 
-#define MASS 10
-#define GRAVITY 10
 
 
 /*-----------------------------------------------------------------------*/
@@ -38,6 +36,9 @@ float OX = 0;//should be update to a new coordinate
 float OY = 0;
 float OZ = 0;
 float currentFrame;
+
+#define MASS 10
+#define GRAVITY 10
 
 Camera *camera;
 
@@ -76,7 +77,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
 }
 
 void initPMV(Shader my_shader, Shader light_shader, const glm::vec3 pointLightPositions[]) {
@@ -168,19 +169,19 @@ glm::vec3 calculate_tangent(glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec2 
 
 void get_vec3(std::vector<float> list, std::vector<glm::vec3> &vec)
 {
-	int n = list.size() / 3;
-	for (int i = 0; i < n; i++)
-	{
-		vec.emplace_back(list[i * 3], list[i * 3 + 1], list[i * 3 + 2]);
-	}
+    int n = list.size() / 3;
+    for (int i = 0; i < n; i++)
+    {
+        vec.emplace_back(list[i * 3], list[i * 3 + 1], list[i * 3 + 2]);
+    }
 }
 void get_vec2(std::vector<float> list, std::vector<glm::vec2>& vec)
 {
-	int n = list.size() / 2;
-	for (int i = 0; i < n; i++)
-	{
-		vec.emplace_back(list[i * 2], list[i * 2 + 1]);
-	}
+    int n = list.size() / 2;
+    for (int i = 0; i < n; i++)
+    {
+        vec.emplace_back(list[i * 2], list[i * 2 + 1]);
+    }
 }
 
 void drawLights(Shader light_shader, glm::vec3 pointLightPositions[], unsigned int VAO) {
@@ -209,8 +210,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     for (auto cube : cubes) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, cube.get_transformation());
-		model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
-        // todo: add rotation
+        model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
         shader.setMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -222,10 +222,9 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 // 生成rigid body的函数
 // 输入为初始位置
 RigidBody create_body(glm::vec3 init_pos) {
-    // todo: 创建一个rigidbody并且生成其中等初始化数据
-	RigidBody new_body(init_pos, MASS);		//初始时init_pos为x(t)，质量设置为10
-	new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
-	new_body.setIbody(MASS, 1.0f);
+    RigidBody new_body(init_pos, MASS);		//初始时init_pos为x(t)，质量设置为10
+    new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
+    new_body.setIbody(MASS, 1.0f);
     return new_body;
 }
 
@@ -449,19 +448,89 @@ Contact check_collision(RigidBody &a, RigidBody &b) {
     return f_v;
 }
 
+void process_gravity_floor(RigidBody &body) {
+    if (body.get_transformation().z < 0.6) {
+        // 物体接触了地面, 去除重力影响， 给重力一半的支持力
+        // 初始化八个顶点body space
+        std::vector<glm::vec3> points;
+        glm::mat4 model = body.to_world();
+        points.reserve(8);
+        glm::vec3 tem = glm::vec4(0.5, 0.5, 0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(0.5, 0.5, -0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, 0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, -0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, 0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, -0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, 0.5, 1) * model;
+        points.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, -0.5, 1) * model;
+        points.push_back(tem);
+
+        double min_z = 10;
+        std::vector<int> repeat_index;
+        repeat_index.push_back(-1);
+        for (int i = 0;i < points.size();i++) {
+            if (points[i].z < min_z) {
+                repeat_index.clear();
+                repeat_index.push_back(i);
+            } else if (points[i].z == min_z) {
+                repeat_index.push_back(i);
+            }
+        }
+        // 一条边和地板相撞
+        glm::vec3 hit_point;
+        switch(repeat_index.size()) {
+            // 一个角撞击地面
+            case 1:
+                hit_point = points[0];
+                break;
+                // 一条边撞击地面
+            case 2:
+                hit_point = 0.5f * (points[0] + points[1]);
+                break;
+                // 一个面撞击地面
+            case 4:
+                hit_point = 0.25f * (points[0] + points[1] + points[2] + points[3]);
+        }
+
+        // 更新动量
+        glm::vec3 delt_v = glm::vec3(0, 0, -1.0f);
+        delt_v *= GRAVITY * time_interval;
+        glm::vec3 J = delt_v * body.get_mass();
+        body.sum_Pt(J);
+
+        // 更新角动量
+        glm::vec3 tao_impulse = glm::cross((hit_point - body.get_transformation()), J);
+        body.sum_Lt(tao_impulse);
+
+    } else {
+        // 物体没有接触地面
+        glm::vec3 delt_v = glm::vec3(0, 0, -1.0f);
+        delt_v *= GRAVITY * time_interval;
+        glm::vec3 J = delt_v * body.get_mass();
+        body.sum_Pt(J);
+    }
+}
+
 void move_bodies(RigidBody &body) {
-	glm::vec3 curr_v = body.get_Pt / MASS;				//计算并更新此时刻物体的 linear velocity
-	glm::vec3 curr_w = body.get_Lt / body.get_Ibody();	//计算并更新此时刻物体的 angular velocity
-	body.UpdateStates(curr_v, curr_w);
+    // 根据动量角动量移动物体
+    glm::vec3 curr_v = body.get_Pt() / (float) MASS;				//计算并更新此时刻物体的 linear velocity
+    glm::vec3 curr_w = body.get_Lt() / (float) body.get_Ibody();	//计算并更新此时刻物体的 angular velocity
+    body.UpdateStates(curr_v, curr_w);
 }
 
 
-void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
+void update_cube_positions(std::vector<RigidBody> cubes) {
     // todo: 计算所有的物体碰撞后改变的速度和角速度
     // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
 
     // step1:
-    std::cout<<cubes.size()<<std::endl;
     for (int i = 0; i < cubes.size(); i++) {
         for (int j = i + 1; j < cubes.size(); j++) {
             float dis = glm::length(cubes[i].get_transformation() - cubes[j].get_transformation());
@@ -498,6 +567,7 @@ void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
 
     // step4： 根据动量移动物体的transformation和Wt
     for (auto cube : cubes) {
+        process_gravity_floor(cube);
         move_bodies(cube);
     }
 }
@@ -506,12 +576,11 @@ void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
 
 int main()
 {
+
+
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
-    // cmakeLists.txt所在文件目录绝对位置
     std::string model_dir = root_dir + "/model";
-    // std::cout<<root_dir<<std::endl;
-    // todo: 如果这里print出来的model_dir或root_dir值不对，无法修改，可以改成绝对路径写死。
 
     // glfw: initialize and configure
     // ------------------------------
@@ -535,79 +604,79 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-	glEnable(GL_DEPTH_TEST);
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Here you need to fill construct function of class Shader. And you need to understand other funtions in Shader.//
-	// Then, write code in shader_m.vs, shader_m.fs and shader_m.gs to finish the tasks.                             //
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	Shader my_shader(
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    glEnable(GL_DEPTH_TEST);
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Here you need to fill construct function of class Shader. And you need to understand other funtions in Shader.//
+    // Then, write code in shader_m.vs, shader_m.fs and shader_m.gs to finish the tasks.                             //
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    Shader my_shader(
             (root_dir + "/src/shader_m.vs").c_str(),
             (root_dir + "/src/shader_m.fs").c_str()
-	);
-	//A shader for light visiable source
-	Shader lampShader((root_dir + "/src/lamp.vs").c_str(), (root_dir + "/src/lamp.fs").c_str());
-	
+    );
+    //A shader for light visiable source
+    Shader lampShader((root_dir + "/src/lamp.vs").c_str(), (root_dir + "/src/lamp.fs").c_str());
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Render a box to show nice normal mapping.                                                                   //
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	float raw_vertices_cube_0[] = {
 
-		// positions          // normals           // texture coords
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Render a box to show nice normal mapping.                                                                   //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    float raw_vertices_cube_0[] = {
 
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+            // positions          // normals           // texture coords
 
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
 
-	};
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+
+    };
 
     float vertices_cube_0[36 * 11];
     for (int l = 0; l < 36; l += 3) {
@@ -675,16 +744,16 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// You need to fill this function which is defined in my_texture.h. The parameter is the path of your image.   //
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	unsigned int texture1 = loadTexture((model_dir + "/brickwall.jpg").c_str());
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // You need to fill this function which is defined in my_texture.h. The parameter is the path of your image.   //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    unsigned int texture1 = loadTexture((model_dir + "/brickwall.jpg").c_str());
     unsigned int texture2 = loadTexture((model_dir + "/normal_map.jpg").c_str());
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Here we defined pointlights in shader and passed some parameter for you. You can take this as an example.   //
-	// Or you can change it if you like.                                                                           //
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Here we defined pointlights in shader and passed some parameter for you. You can take this as an example.   //
+    // Or you can change it if you like.                                                                           //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glm::vec3 pointLightPositions[] = {
             glm::vec3(5.7f,  5.2f,  2.0f),
@@ -714,21 +783,23 @@ int main()
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         changePMV(my_shader, lampShader);
-        update_cube_positions(CubePositions, ((double) (1))/30);
-		//Update Camera Matrix
-		glFlush();
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_LIGHTING);
-		glEnable(GL_COLOR_MATERIAL);
-		glLightModeli(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//  Render an object using texture and normal map.                                                             //
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // update_cube_positions(CubePositions);
+
+        //Update Camera Matrix
+        glFlush();
+        glEnable(GL_MULTISAMPLE);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_COLOR_MATERIAL);
+        glLightModeli(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //  Render an object using texture and normal map.                                                             //
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // 现在有的带normal map 的图形在这里画的
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
@@ -743,9 +814,9 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//  Render the object in .obj file. You need to set materials and wrap texture for objects.                    //
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //  Render the object in .obj file. You need to set materials and wrap texture for objects.                    //
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         /*
         my_shader.use();
@@ -763,9 +834,9 @@ int main()
 
 
 
-		/////////////////////////////////////////////////////////////////////
-		
-		/////////////////////////////end/////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////
+
+        /////////////////////////////end/////////////////////////////////////
         // Visualize point lights and dir lights
         glActiveTexture(GL_TEXTURE0);
 

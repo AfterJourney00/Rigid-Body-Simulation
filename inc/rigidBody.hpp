@@ -5,6 +5,8 @@
 #include <omp.h>
 #include <glm/glm.hpp>
 
+float time_interval = ((float) (1))/30;
+
 class Particle {
 public:
     Particle(glm::vec3 s_pos, glm::vec3 c_pos, float m){       //construct the particle with the distance and mass
@@ -129,7 +131,7 @@ public:
 		this->Wt = wt;					//更新 angular velocity
 
 		this->Transformation = vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
-		this->angle = wt * time_interval;		//更新物体旋转角度				time_interval还未定义
+		this->angle = glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
 	}
 
     glm::mat4 to_world() {
