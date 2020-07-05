@@ -450,7 +450,9 @@ Contact check_collision(RigidBody &a, RigidBody &b) {
 }
 
 void move_bodies(RigidBody &body) {
-	// 根据动量角动量移动物体
+	glm::vec3 curr_v = body.get_Pt / MASS;				//计算并更新此时刻物体的 linear velocity
+	glm::vec3 curr_w = body.get_Lt / body.get_Ibody();	//计算并更新此时刻物体的 angular velocity
+	body.UpdateStates(curr_v, curr_w);
 }
 
 

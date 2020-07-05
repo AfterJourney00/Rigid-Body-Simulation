@@ -91,6 +91,18 @@ public:
         return Wt;
     }
 
+	glm::vec3 get_Pt() {
+		return this->Pt;
+	}
+
+	glm::vec3 get_Lt() {
+		return this->Lt;
+	}
+
+	double get_Ibody() {
+		return this->Ibody;
+	}
+
     float get_mass() {
         return mass;
     }
@@ -110,6 +122,14 @@ public:
 
 	void setIbody(double mass, float r) {
 		this->Ibody = mass * powf(r,2) / 6.0f;		//正方体转动惯量的公式
+	}
+
+	void UpdateStates(glm::vec3 vt, glm::vec3 wt) {		//物体状态改变更新函数
+		this->Vt = vt;					//更新 linear velocity
+		this->Wt = wt;					//更新 angular velocity
+
+		this->Transformation = vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
+		this->angle = wt * time_interval;		//更新物体旋转角度				time_interval还未定义
 	}
 
     glm::mat4 to_world() {
