@@ -1,2 +1,4 @@
 /cmake-build-debug/
 .idea/
+/src/main__mac.cpp
+CMakeLists.txt

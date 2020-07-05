@@ -226,55 +226,25 @@ RigidBody create_body(glm::vec3 init_pos) {
     return RigidBody(glm::vec3(2,2,2), glm::mat4(1.0f), 150);
 }
 
-void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
-    // todo: 计算所有的物体碰撞后改变的速度和角速度
-    // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
-
-	// step1:
-	for (int i = 0; i < cubes.size(); i++) {
-		for (int j = i + 1; j < cubes.size(); j++) {
-			float dis = glm::length(cubes[i].get_transformation() - cubes[j].get_transformation());
-			if (dis < sqrtf(3)) {
-				cubes[i].possible_collision.push_back(cubes[j]);
-				cubes[j].possible_collision.push_back(cubes[i]);
-			}
-		}
-	}
-	std::vector<Contact> contacts;
-	// step2: 计算碰撞点
-	for (auto cube : cubes) {
-		while (!cube.possible_collision.empty()) {
-			RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
-			Contact tem_contact = check_collision(tem, cube);
-			if (tem_contact.is_valid) {
-				contacts.push_back(tem_contact);
-			}
-			int i = 0;
-			for (i = 0; i < tem.possible_collision.size(); i++) {
-				if (tem.possible_collision[i].get_transformation == cube.get_transformation) {
-					break;
-				}
-			}
-			tem.possible_collision.erase[i];
-			cube.possible_collision.pop_back();
-		}
-	}
-
-	// step3: 计算动量变化
-	for (auto con : contacts) {
-		process_collision(con);
-	}
-
-	// step4： 根据动量移动物体的transformation和Wt
-	for (auto cube : cubes) {
-		move_bodies(cube);
-	}
-}
 
 // 返回值修改a，b中的成员变量
 void process_collision(Contact con) {
-	// todo: 处理碰撞对物体影响
-
+    // todo: 处理碰撞对物体影响
+    if (con.is_valid) {
+        if (con.is_face_vertex) {
+            glm::vec3 pat = con.a->get_vt() + con.a->get_wt() * (con.particle_position - con.a->get_transformation());
+            glm::vec3 pbt=con.b->get_vt() + con.b->get_wt() * (con.particle_position - con.b->get_transformation());
+            float v_rel;
+            v_rel = glm::dot(con.face_normal, (pat - pbt));
+            glm::vec3 Ja, Jb;
+            glm::vec3 det_va = v_rel - con.a->get_vt();
+            glm::vec3 det_vb = v_rel - con.b->get_vt();
+            Ja = det_va * con.a->get_mass();
+            Jb = det_vb * con.a->get_mass();
+            glm::vec3 tao_a = glm::cross((con.particle_position - con.a->get_transformation()), Ja);
+            glm::vec3 tao_b = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
+        }
+    }
 }
 
 Contact check_collision(RigidBody &a, RigidBody &b) {
@@ -287,10 +257,57 @@ void move_bodies(RigidBody &body) {
 }
 
 
+void update_cube_positions(std::vector<RigidBody> cubes, double time_interval) {
+    // todo: 计算所有的物体碰撞后改变的速度和角速度
+    // todo: 按照输入的时间间隔移动cubes位置（修改RigidBody->transformation以及旋转
+
+    // step1:
+    std::cout<<cubes.size()<<std::endl;
+    for (int i = 0; i < cubes.size(); i++) {
+        for (int j = i + 1; j < cubes.size(); j++) {
+            float dis = glm::length(cubes[i].get_transformation() - cubes[j].get_transformation());
+            if (dis < sqrtf(3)) {
+                cubes[i].possible_collision.push_back(cubes[j]);
+                cubes[j].possible_collision.push_back(cubes[i]);
+            }
+        }
+    }
+    std::vector<Contact> contacts;
+    // step2: 计算碰撞点
+    for (auto cube : cubes) {
+        while (!cube.possible_collision.empty()) {
+            RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
+            Contact tem_contact = check_collision(tem, cube);
+            if (tem_contact.is_valid) {
+                contacts.push_back(tem_contact);
+            }
+            int i = 0;
+            for (i = 0; i < tem.possible_collision.size(); i++) {
+                if (tem.possible_collision[i].get_transformation() == cube.get_transformation()) {
+                    break;
+                }
+            }
+            tem.possible_collision.erase(tem.possible_collision.begin() + i);
+            cube.possible_collision.pop_back();
+        }
+    }
+
+    // step3: 计算动量变化
+    for (auto con : contacts) {
+        process_collision(con);
+    }
+
+    // step4： 根据动量移动物体的transformation和Wt
+    for (auto cube : cubes) {
+        move_bodies(cube);
+    }
+}
+
+
 
 int main()
 {
-    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
+    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     // cmakeLists.txt所在文件目录绝对位置
     std::string model_dir = root_dir + "/model";
@@ -558,7 +575,7 @@ int main()
         drawCubes(my_shader, CubePositions, VAO);
 
         // todo: 从天上生成新的cube落下
-        CubePositions.push_back(create_body(glm::vec3(2.0f, 3.5f, 4.5f)));
+        // CubePositions.push_back(create_body(glm::vec3(2.0f, 3.5f, 4.5f)));
 
         glfwSwapBuffers(window);
         glfwPollEvents();

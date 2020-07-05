@@ -85,8 +85,19 @@ public:
 		return this->angle;
 	}
 
+    glm::vec3 get_vt() {
+        return Vt;
+    }
+    glm::vec3 get_wt() {
+        return Wt;
+    }
 
-	// 一个rigidbody对应一个相撞点
+    float get_mass() {
+        return mass;
+    }
+
+
+	// 一锟斤拷rigidbody锟斤拷应一锟斤拷锟斤拷撞锟斤拷
 	std::vector<RigidBody> possible_collision;
 	std::vector<RigidBody> collision_particle;
 private:
