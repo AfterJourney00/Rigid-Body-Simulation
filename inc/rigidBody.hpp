@@ -146,8 +146,8 @@ public:
 
 class Line {
 public:
-	Line(glm::vec3 d, glm::vec3 o) {
-		dir = d;
+	Line(glm::vec3 o, glm::vec3 d) {
+		dir = glm::normalize(d);
 		ori = o;
 	};
 	Line() {};
