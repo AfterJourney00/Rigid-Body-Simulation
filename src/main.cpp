@@ -267,6 +267,12 @@ glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
     return glm::vec4(n, glm::dot(p, n));
 }
 
+bool Is_Same_side(float a1, float a2, float a3, float a4) {
+	if (a1 >= 0 && a2 >= 0 && a3 >= 0 && a4 >= 0) return true;
+	else if (a1 <= 0 && a2 <= 0 && a3 <= 0 && a4 <= 0) return true;
+	else return false;
+}
+
 // 将一个点分类放入两个不同的点集
 void add_point(std::vector<glm::vec3> &repeat_points, std::vector<glm::vec3> &single_points, glm::vec3 point) {
     for (int i = 0; i < single_points.size(); ++i) {
@@ -341,9 +347,36 @@ std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm:
     return result_line;
 }
 
-bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, std::vector<glm::vec3> line, std::vector<glm::vec3> line_segment) {
+bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, glm::vec4 face_a_func, glm::vec4 face_b_func, std::vector<glm::vec3> line, std::vector<glm::vec3> line_segment) {
+	float A1 = face_a_func[0];
+	float B1 = face_a_func[1];
+	float C1 = face_a_func[2];
+	float D1 = face_a_func[3];
 
-    return true;
+	float A2 = face_b_func[0];
+	float B2 = face_b_func[1];
+	float C2 = face_b_func[2];
+	float D2 = face_b_func[3];
+	
+	float check_a_to_b1 = A2 * face_a[0][0] + B2 * face_a[0][1] + C2 * face_a[0][2] - D2;
+	float check_a_to_b2 = A2 * face_a[1][0] + B2 * face_a[1][1] + C2 * face_a[1][2] - D2;
+	float check_a_to_b3 = A2 * face_a[2][0] + B2 * face_a[2][1] + C2 * face_a[2][2] - D2;
+	float check_a_to_b4 = A2 * face_a[3][0] + B2 * face_a[3][1] + C2 * face_a[3][2] - D2;
+	if (Is_Same_side(check_a_to_b1, check_a_to_b2, check_a_to_b3, check_a_to_b4)) {		//有限的面a 与 无限的面b没有相交
+		return false;		//没有相交的线段
+	}
+	else {		//如果有限的面a 与 无限的面b可以相交，需要再算有限的面b与无限的面a是否相交
+		float check_b_to_a1 = A1 * face_b[0][0] + B1 * face_b[0][1] + C1 * face_b[0][2] - D1;
+		float check_b_to_a2 = A1 * face_b[1][0] + B1 * face_b[1][1] + C1 * face_b[1][2] - D1;
+		float check_b_to_a3 = A1 * face_b[2][0] + B1 * face_b[2][1] + C1 * face_b[2][2] - D1;
+		float check_b_to_a4 = A1 * face_b[3][0] + B1 * face_b[3][1] + C1 * face_b[3][2] - D1;
+		if (Is_Same_side(check_b_to_a1, check_b_to_a2, check_b_to_a3, check_b_to_a4)) {		//有限的面b与无限的面a没有相交
+			return false;		//没有相交的线段
+		}	
+		else {	//有限的面b与无限的面a也相交了（有相交线段）
+			return true;
+		}
+	}
 }
 Contact check_collision(RigidBody& a, RigidBody& b) {
     Contact f_v;
@@ -449,12 +482,13 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
         for (int j = i; j < 6; j++) {
             // 传入face_function面上的一个点和一个法向量
             // 计算出面的表达式ax+by+cz=d 结果存在一个vec4里面
-            func_1f = face_function(face_p_n_a[i][0], face_p_n_a[i][4]);
-            func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);
+            func_1f = face_function(face_p_n_a[i][0], face_p_n_a[i][4]);	//计算面a表达式
+            func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);	//计算面b表达式
             // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
             std::vector<glm::vec3> line_segment;
-            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line, line_segment)) {
+
+            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], func_1f, func_2f, line, line_segment)) {
                 line_possible.push_back(line_segment);
                 face_line_number[i].push_back(line_possible.size() - 1);
                 face_line_number[j].push_back(line_possible.size() - 1);
