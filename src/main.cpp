@@ -352,12 +352,9 @@ glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::v
 	return result_point;
 }
 
-std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
-    std::vector<glm::vec3> result_line;
-    result_line.emplace_back(0.0f);
-    result_line.emplace_back(0.0f);
+Line calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
+
     float x, y, z;
-    result_line[1] = glm::cross(n1, n2);
     if (func_1f.y * func_2f.z != func_2f.y * func_1f.z) {
         if (func_2f.z != 0.0f) {
             x = 0.0f;
@@ -382,8 +379,8 @@ std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm:
             y = (func_1f.w - func_1f.x * x) / func_1f.y;
         }
     }
-    result_line[0] = glm::vec3(x, y, z);
-    return result_line;
+
+    return Line(glm::vec3(x, y, z), glm::cross(n1, n2));
 }
 
 bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, glm::vec4 face_a_func, glm::vec4 face_b_func, std::vector<glm::vec3> line, std::vector<glm::vec3> line_segment) {
@@ -508,8 +505,8 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     }
     glm::vec4 func_1f, func_2f;
     // line[face_index][0-2n] for n lines each face
-    std::vector<glm::vec3> line;
-    std::vector<std::vector<glm::vec3>> line_possible;
+    Line line;
+    std::vector<Segment> line_possible;
     std::vector<std::vector<int>> face_line_number;
     std::vector<int> temp_int;
     temp_int.clear();
@@ -525,8 +522,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);	//计算面b表达式
             // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
-            std::vector<glm::vec3> line_segment;
-
+            Segment line_segment;
             if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], func_1f, func_2f, line, line_segment)) {
                 line_possible.push_back(line_segment);
                 face_line_number[i].push_back(line_possible.size() - 1);
@@ -548,7 +544,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
         f_v.is_valid = true;
         f_v.is_face_vertex = true;
         f_v.face_normal = face_normal[target_face[0]];
-        if (line_possible.size() >= 2) {
+        if (line_possible.size() >= 3) {
             // 点面相交
             // 输入三个线段， 返回一个顶点
             // f_v.particle_position = calculate_face_vertex(line_segment[0] + line_segment[1] + line_segment[2]);

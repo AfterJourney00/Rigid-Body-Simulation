@@ -138,3 +138,25 @@ public:
 	bool is_face_vertex;
 	bool is_valid;
 };
+
+class Line {
+public:
+	Line(glm::vec3 d, glm::vec3 o) {
+		dir = d;
+		ori = o;
+	};
+	Line() {};
+	glm::vec3 dir;
+	glm::vec3 ori;
+};
+
+class Segment {
+public:
+	Segment(glm::vec3 s, glm::vec3 e) {
+		start = s;
+		end = e;
+	};
+	Segment(){};
+	glm::vec3 start;
+	glm::vec3 end;
+};
