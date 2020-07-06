@@ -333,6 +333,12 @@ float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 	}
 }
 
+glm::vec3 solution_lines_vertex(Line line1, Line line2) {
+    float x;
+    x = solution_of_functions(glm::vec3(line1.dir.x, -line2.dir.x, (line2.ori.x - line1.ori.x)), glm::vec3(line1.dir.y, -line2.dir.y, (line2.ori.y - line1.ori.y)));
+    return (line1.dir * x + line1.ori);
+}
+
 glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
 	float x_for_solution;
 	glm::vec3 result_point;
