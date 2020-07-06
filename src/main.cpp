@@ -228,8 +228,8 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 
 // 生成rigid body的函数
 // 输入为初始位置
-RigidBody create_body(glm::vec3 init_pos) {
-    RigidBody new_body(init_pos, MASS, glm::vec3(1,1,0), 45);		//初始时init_pos为x(t)，质量设置为10
+RigidBody create_body(glm::vec3 init_pos, glm::vec3 dir = glm::vec3(0,1,0), float angle = 0) {
+    RigidBody new_body(init_pos, MASS, dir, angle);		//初始时init_pos为x(t)，质量设置为10
     new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
     new_body.setIbody(MASS, 1.0f);
     return new_body;
@@ -283,8 +283,8 @@ glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::v
 
 std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
     std::vector<glm::vec3> result_line;
-    result_line.push_back(glm::vec3(0.0f));
-    result_line.push_back(glm::vec3(0.0f));
+    result_line.emplace_back(0.0f);
+    result_line.emplace_back(0.0f);
     float x, y, z;
     result_line[1] = glm::cross(n1, n2);
     if (func_1f.y * func_2f.z != func_2f.y * func_1f.z) {
@@ -345,8 +345,9 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     Contact f_v;
     f_v.a = &a;
     f_v.b = &b;
-    // local face_point
+    // 面的法向量
     std::vector<glm::vec3> face_normal;
+    // 六个面分别的四个点
     std::vector<std::vector<glm::vec3>> face_point;
     std::vector<glm::vec3> tem;
 
@@ -365,6 +366,8 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     tem.emplace_back(-0.5f, 0.5f, 0.5f);
 
     face_point.push_back(tem);
+    tem.clear();
+
     face_normal.emplace_back(-1.0f, 0.0f, 0.0f);
 
     tem.emplace_back(0.5f, 0.5f, -0.5f);
@@ -373,6 +376,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     tem.emplace_back(0.5f, 0.5f, 0.5f);
 
     face_point.push_back(tem);
+    tem.clear();
     face_normal.emplace_back(0.0f, 1.0f, 0.0f);
 
     tem.emplace_back(0.5f, -0.5f, -0.5f);
@@ -381,6 +385,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     tem.emplace_back(0.5f, -0.5f, 0.5f);
 
     face_point.push_back(tem);
+    tem.clear();
     face_normal.emplace_back(0.0f, -1.0f, 0.0f);
 
     tem.emplace_back(0.5f, 0.5f, 0.5f);
@@ -389,6 +394,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     tem.emplace_back(-0.5f, 0.5f, 0.5f);
 
     face_point.push_back(tem);
+    tem.clear();
     face_normal.emplace_back(0.0f, 0.0f, 1.0f);
 
 
@@ -398,12 +404,15 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     tem.emplace_back(-0.5f, 0.5f, -0.5f);
 
     face_point.push_back(tem);
+    tem.clear();
+
     face_normal.emplace_back(0.0f, 0.0f, -1.0f);
 
     // face information including the face vertices(0-3) and normal(4)
     std::vector<std::vector<glm::vec3>> face_p_n_a;
     std::vector<std::vector<glm::vec3>> face_p_n_b;
     std::vector<glm::vec3> temp;
+    // 初始化两个vector
     for (int j = 0; j < 5; j++) {
         temp.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
     }
@@ -412,6 +421,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
         face_p_n_b.push_back(temp);
     }
 
+    // 面上的点和法向量转换成世界坐标系
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 4; j++) {
             face_p_n_a[i][j] = a.to_world() * glm::vec4(face_point[i][j], 1.0f);
@@ -426,14 +436,18 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     std::vector<std::vector<glm::vec3>> line_possible;
     std::vector<std::vector<int>> face_line_number;
     std::vector<int> temp_int;
-    temp_int.empty();
+    temp_int.clear();
+    face_line_number.reserve(6);
     for (int i = 0; i < 6; i++) {
         face_line_number.push_back(temp_int);
     }
     for (int i = 0; i < 6; i++) {
         for (int j = i; j < 6; j++) {
+            // 传入face_function面上的一个点和一个法向量
+            // 计算出面的表达式ax+by+cz=d 结果存在一个vec4里面
             func_1f = face_function(face_p_n_a[i][0], face_p_n_a[i][4]);
             func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);
+            // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
             if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line)) {
                 line_possible.push_back(line);
@@ -624,10 +638,41 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
     }
 }
 
+void check_calculate_line() {
+    std::cout<<"unit test calculate_line"<<std::endl;
+    glm::vec3 a(0.5,0.5,0.5);
+    glm::vec3 a_n(0,0,1);
+    glm::vec3 b(0.5,0.25,0.5);
+    glm::vec3 b_n(0,-1,1);
+
+    glm::vec4 func_1f = face_function(a, a_n);
+    glm::vec4 a_t(0.25,0.5,0.5, 0);
+    // 检查点是否在面上
+    if (glm::dot(func_1f, a_t) != func_1f.w){
+        std::cout<<"face_function error!"<<std::endl;
+    }
+
+    glm::vec4 func_2f = face_function(b,b_n);
+    glm::vec4 b_t(0.3,0.45,0.7, 0);
+    // 检查点是否在面上
+    if (glm::dot(func_2f, b_t) != func_2f.w){
+        std::cout<<"face_function error!"<<std::endl;
+    }
+    std::vector<glm::vec3> result = calculate_line(func_1f, func_2f, a_n, b_n);
+    glm::vec3 test_p(1.5,0.25,0.5);
+    if (glm::normalize(test_p - result[0]) != glm::normalize(result[1])
+    || glm::normalize(b - result[0]) != glm::normalize(result[1])) {
+        std::cout<<"calculate_line error!"<<std::endl;
+    }
+}
+
 
 
 int main()
 {
+    check_calculate_line();
+
+
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
@@ -820,7 +865,7 @@ int main()
 
     // 以下为使用方法
     CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f)));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 6.0f, 0.0f)));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 6.0f, 0.0f),glm::vec3(1,1,0), 45));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
