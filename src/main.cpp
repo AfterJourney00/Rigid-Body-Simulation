@@ -263,224 +263,206 @@ void process_collision(Contact con) {
         con.b->sum_Lt(tao_b_impulse);
     }
 }
+glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
+    return glm::vec4(n, glm::dot(p, n));
+}
 
-bool face_vertex_interation(Contact f_v, glm::vec3 p, glm::vec3 g, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d) {
-    glm::vec3 face[4];
-    face[0] = a;
-    face[1] = b;
-    face[2] = c;
-    face[3] = d;
-    std::vector<glm::vec3> triangle;
-    glm::vec3 ray_k = glm::normalize(p - g);
-    glm::vec3 Q = ray_k * 1.0f + p;
-    float t, v, w;
-    // 4种triangle全部遍历
-    for (int i = 0; i < 4; i++) {
-        // 确定triangle的三个顶点
-        for (int j = 0; j < 3; j++) {
-            if (i + j < 4) {
-                triangle.push_back(face[i + j]);
-            }
-        }
-        glm::vec3 A = triangle[0];
-        glm::vec3 B = triangle[1];
-        glm::vec3 C = triangle[2];
-        glm::vec3 n = glm::cross((B - A), (C - A));
-        float d = glm::dot((p - Q), n);
-        glm::vec3 e = glm::cross((p - Q), (p - A));
-        //t=det[(P-A) (B-A) (C-A)]/det[(P-Q) (B-A) (C-A)]
-        t = glm::dot((p - A), n);
-        t /= d;
-        //v=det[(P-Q) (P-A) (C-A)]/det[(P-Q) (B-A) (C-A)]
-        v = glm::dot((C - A), e);
-        v /= d;
-        //w=det[(P-Q) (B-A) (P-A)]/det[(P-Q) (B-A) (C-A)]
-        w = glm::dot((B - A), e);
-        w = -w;
-        w /= d;
-        if (v >= 0 && w >= 0 && v + w <= 1) {
-            f_v.is_valid = 1;
-            f_v.is_face_vertex = 1;
-            f_v.particle_position = p + t * ray_k;
-            return true;
+glm::vec3 calculate_edge() {
+    return glm::vec3(0.0f, 0.0f, 0.0f);
+}
+
+glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
+    glm::vec3 a, b, c, result;
+    a = line1[0] + (line1[0] - line2[0]) / (line2[1] - line1[1]) * line1[1];
+    b = line2[0] + (line2[0] - line3[0]) / (line3[1] - line2[1]) * line2[1];
+    c = line1[0] + (line1[0] - line3[0]) / (line3[1] - line1[1]) * line1[1];
+    result = (a + b + c);
+    result /= 3;
+    return result;
+}
+
+std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
+    std::vector<glm::vec3> result_line;
+    result_line.push_back(glm::vec3(0.0f));
+    result_line.push_back(glm::vec3(0.0f));
+    float x, y, z;
+    result_line[1] = glm::cross(n1, n2);
+    if (func_1f.y * func_2f.z != func_2f.y * func_1f.z) {
+        if (func_2f.z != 0.0f) {
+            x = 0.0f;
+            y = (func_1f.w - (func_1f.z / func_2f.z) * func_2f.w) / (func_1f.y - (func_1f.z / func_2f.z) * func_2f.y);
+            z = (func_2f.w - y * func_2f.y) / func_2f.z;
         }
         else {
-            f_v.is_valid = 0;
+            x = 0.0f;
+            y = func_2f.w / func_2f.y;
+            z = (func_1f.w - y * func_1f.y) / func_1f.z;
         }
     }
-    return false;
+    else {
+        if (func_2f.y != 0.0f) {
+            z = 0.0f;
+            x = (func_1f.w - (func_1f.y / func_2f.y) * func_2f.w) / (func_1f.x - (func_1f.y / func_2f.y) * func_2f.x);
+            y = (func_2f.w - func_2f.x * x) / func_2f.y;
+        }
+        else {
+            z = 0.0f;
+            x = func_2f.w / func_2f.x;
+            y = (func_1f.w - func_1f.x * x) / func_1f.y;
+        }
+    }
+    result_line[0] = glm::vec3(x, y, z);
+    return result_line;
 }
-Contact check_collision(RigidBody &a, RigidBody &b) {
-    RigidBody *aa, *bb;
-    aa = &a;
-    bb = &b;
-    int cout = 0;
+
+bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, std::vector<glm::vec3> line) {
+    bool line_face_a = false;
+    glm::vec3 k;
+    for (int i = 0; i < 4; i++) {
+        if (i == 3) {
+            k = face_a[0] - face_a[3];
+        }
+        else {
+            k = face_a[i + 1] - face_a[i];
+        }
+        if ((face_a[i].x - line[0].x) / (line[1].x - k.x) >= 0 && (face_a[i].x - line[0].x) / (line[1].x - k.x) <= 1) {
+            for (int j = 0; j < 4; j++) {
+                if (j == 3) {
+                    k = face_b[0] - face_b[3];
+                }
+                else {
+                    k = face_b[j + 1] - face_b[j];
+                }
+                if ((face_b[j].x - line[0].x) / (line[1].x - k.x) >= 0 && (face_b[j].x - line[0].x) / (line[j].x - k.x) <= 1) {
+                    line_face_a = true;
+                }
+            }
+        }
+    }
+    return line_face_a;
+}
+Contact check_collision(RigidBody& a, RigidBody& b) {
     Contact f_v;
     f_v.a = &a;
     f_v.b = &b;
-    while (cout < 2) {
-        glm::mat4 model_a, model_b;
-        model_a = glm::translate(model_a, (*aa).get_transformation());
-        model_a = glm::rotate(model_a, glm::radians((*aa).get_rotation_angle()), (*aa).get_rotation_dir());
-        model_b = glm::translate(model_b, (*bb).get_transformation());
-        model_b = glm::rotate(model_b, glm::radians((*bb).get_rotation_angle()), (*bb).get_rotation_dir());
-        glm::vec3 face_center[6];
-        face_center[0] = glm::vec3(0.5f, 0.0f, 0.0f);
-        face_center[1] = glm::vec3(-0.5f, 0.0f, 0.0f);
-        face_center[2] = glm::vec3(0.0f, 0.5f, 0.0f);
-        face_center[3] = glm::vec3(0.0f, -0.5f, 0.0f);
-        face_center[4] = glm::vec3(0.0f, 0.0f, 0.5f);
-        face_center[5] = glm::vec3(0.0f, 0.0f, -0.5f);
+    // local face_point
+    std::vector<glm::vec3> face_normal;
+    std::vector<std::vector<glm::vec3>> face_point;
+    std::vector<glm::vec3> tem;
 
-// 判断a是面，b是点
-        glm::vec3 temp;
-        for (int i = 0; i < 6; i++) {
-            temp = face_center[i];
-            face_center[i].x = (model_a * glm::vec4(temp, 1.0f)).x;
-            face_center[i].y = (model_a * glm::vec4(temp, 1.0f)).y;
-            face_center[i].z = (model_a * glm::vec4(temp, 1.0f)).z;
+    tem.emplace_back(0.5f, 0.5f, -0.5f);
+    tem.emplace_back(0.5f, -0.5f, -0.5f);
+    tem.emplace_back(0.5f, -0.5f, 0.5f);
+    tem.emplace_back(0.5f, 0.5f, 0.5f);
+    face_point.push_back(tem);
+    tem.clear();
+
+    face_normal.emplace_back(1.0f, 0.0f, 0.0f);
+
+    tem.emplace_back(-0.5f, 0.5f, -0.5f);
+    tem.emplace_back(-0.5f, -0.5f, -0.5f);
+    tem.emplace_back(-0.5f, -0.5f, 0.5f);
+    tem.emplace_back(-0.5f, 0.5f, 0.5f);
+
+    face_point.push_back(tem);
+    face_normal.emplace_back(-1.0f, 0.0f, 0.0f);
+
+    tem.emplace_back(0.5f, 0.5f, -0.5f);
+    tem.emplace_back(-0.5f, 0.5f, -0.5f);
+    tem.emplace_back(-0.5f, 0.5f, 0.5f);
+    tem.emplace_back(0.5f, 0.5f, 0.5f);
+
+    face_point.push_back(tem);
+    face_normal.emplace_back(0.0f, 1.0f, 0.0f);
+
+    tem.emplace_back(0.5f, -0.5f, -0.5f);
+    tem.emplace_back(-0.5f, -0.5f, -0.5f);
+    tem.emplace_back(-0.5f, -0.5f, 0.5f);
+    tem.emplace_back(0.5f, -0.5f, 0.5f);
+
+    face_point.push_back(tem);
+    face_normal.emplace_back(0.0f, -1.0f, 0.0f);
+
+    tem.emplace_back(0.5f, 0.5f, 0.5f);
+    tem.emplace_back(0.5f, -0.5f, 0.5f);
+    tem.emplace_back(-0.5f, -0.5f, 0.5f);
+    tem.emplace_back(-0.5f, 0.5f, 0.5f);
+
+    face_point.push_back(tem);
+    face_normal.emplace_back(0.0f, 0.0f, 1.0f);
+
+
+    tem.emplace_back(0.5f, 0.5f, -0.5f);
+    tem.emplace_back(0.5f, -0.5f, -0.5f);
+    tem.emplace_back(-0.5f, -0.5f, -0.5f);
+    tem.emplace_back(-0.5f, 0.5f, -0.5f);
+
+    face_point.push_back(tem);
+    face_normal.emplace_back(0.0f, 0.0f, -1.0f);
+
+    // face information including the face vertices(0-3) and normal(4)
+    std::vector<std::vector<glm::vec3>> face_p_n_a;
+    std::vector<std::vector<glm::vec3>> face_p_n_b;
+    std::vector<glm::vec3> temp;
+    for (int j = 0; j < 5; j++) {
+        temp.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+    for (int i = 0; i < 6; i++) {
+        face_p_n_a.push_back(temp);
+        face_p_n_b.push_back(temp);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 4; j++) {
+            face_p_n_a[i][j] = a.to_world() * glm::vec4(face_point[i][j], 1.0f);
+            face_p_n_b[i][j] = b.to_world() * glm::vec4(face_point[i][j], 1.0f);
         }
-// local face_point
-
-        std::vector<std::vector<glm::vec3>> face_point;
-        std::vector<glm::vec3> tmp;
-        tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
-        tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
-        face_point.push_back(tmp);
-
-        tmp.clear();
-
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
-        face_point.push_back(tmp);
-
-        tmp.clear();
-
-        tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
-        tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
-        face_point.push_back(tmp);
-
-        tmp.clear();
-
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        face_point.push_back(tmp);
-
-        tmp.clear();
-        tmp.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
-        tmp.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
-        face_point.push_back(tmp);
-
-        tmp.clear();
-        tmp.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
-        tmp.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
-        face_point.push_back(tmp);
-
-//local vertex
-        std::vector<glm::vec3> point;
-        point.push_back(glm::vec3(0.5f, 0.5f, 0.5f));
-        point.push_back(glm::vec3(-0.5f, 0.5f, 0.5f));
-        point.push_back(glm::vec3(0.5f, -0.5f, 0.5f));
-        point.push_back(glm::vec3(0.5f, 0.5f, -0.5f));
-        point.push_back(glm::vec3(-0.5f, -0.5f, 0.5f));
-        point.push_back(glm::vec3(0.5f, -0.5f, -0.5f));
-        point.push_back(glm::vec3(-0.5f, 0.5f, -0.5f));
-        point.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
-
-
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 4; j++) {
-                temp = face_point[i][j];
-                face_point[i][j].x = (model_a * glm::vec4(temp, 1.0f)).x;
-                face_point[i][j].y = (model_a * glm::vec4(temp, 1.0f)).y;
-                face_point[i][j].z = (model_a * glm::vec4(temp, 1.0f)).z;
+        face_p_n_a[i][4] = a.to_world() * glm::vec4(face_normal[i], 1.0f);
+        face_p_n_b[i][4] = a.to_world() * glm::vec4(face_normal[i], 1.0f);
+    }
+    glm::vec4 func_1f, func_2f;
+    // line[face_index][0-2n] for n lines each face
+    std::vector<glm::vec3> line;
+    std::vector<std::vector<glm::vec3>> line_possible;
+    std::vector<std::vector<int>> face_line_number;
+    std::vector<int> temp_int;
+    temp_int.empty();
+    for (int i = 0; i < 6; i++) {
+        face_line_number.push_back(temp_int);
+    }
+    for (int i = 0; i < 6; i++) {
+        for (int j = i; j < 6; j++) {
+            func_1f = face_function(face_p_n_a[i][0], face_p_n_a[i][4]);
+            func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);
+            line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
+            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line)) {
+                line_possible.push_back(line);
+                face_line_number[i].push_back(line_possible.size());
+                face_line_number[j].push_back(line_possible.size());
             }
         }
-
-        std::vector<glm::vec3> face_center_min;
-        std::vector<int> face_index_min;
-        face_center_min.push_back(face_center[0]);
-        face_index_min.push_back(0);
-        face_center_min.push_back(face_center[1]);
-        face_index_min.push_back(1);
-        face_center_min.push_back(face_center[2]);
-        face_index_min.push_back(2);
-        float max_length;
-        int max_index;
-        max_length = glm::length(face_center_min[0] - (*bb).get_transformation());
-        max_index = 0;
-        for (int i = 1; i < 3; i++) {
-            if (glm::length(face_center_min[i] - (*bb).get_transformation()) > max_length) {
-                max_length = glm::length(face_center_min[i] - (*bb).get_transformation());
-                max_index = i;
-            }
+    }
+    int num_of_face = 0;
+    std::vector<int> target_face;
+    for (int i = 0; i < 6; i++) {
+        if (face_line_number[i].size() > 1) {
+            target_face.push_back(i);
+            num_of_face += 1;
         }
-        for (int i = 0; i < 3; i++) {
-            if (glm::length(face_center[i + 3] - (*bb).get_transformation()) < max_length) {
-                face_center_min[max_index] = face_center[i + 3];
-                face_index_min[max_index] = i + 3;
-                max_length = glm::length(face_center_min[0] - (*bb).get_transformation());
-                max_index = 0;
-                for (int j = 0; j < 3; j++) {
-                    if (glm::length(face_center_min[j] - (*bb).get_transformation()) > max_length) {
-                        max_length = glm::length(face_center_min[j] - (*bb).get_transformation());
-                        max_index = j;
-                    }
-                }
-            }
-        }
-
-
-        glm::vec3 g = glm::vec3(0.0f, 0.0f, 0.0f);
-        temp = g;
-        g.x = (model_b * glm::vec4(temp, 1.0f)).x;
-        g.y = (model_b * glm::vec4(temp, 1.0f)).y;
-        g.z = (model_b * glm::vec4(temp, 1.0f)).z;
-
-        for (int i = 0; i < 8; i++) {
-            temp = point[i];
-            point[i].x = (model_b * glm::vec4(temp, 1.0f)).x;
-            point[i].y = (model_b * glm::vec4(temp, 1.0f)).y;
-            point[i].z = (model_b * glm::vec4(temp, 1.0f)).z;
-        }
-
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (face_vertex_interation(f_v, point[i], g, face_point[face_index_min[j]][0],
-                                           face_point[face_index_min[j]][1], face_point[face_index_min[j]][2],
-                                           face_point[face_index_min[j]][3])) {
-                    if (face_index_min[j] == 0) {
-                        f_v.face_normal = glm::vec3(1.0f, 0.0f, 0.0f);
-                    } else if (face_index_min[j] == 1) {
-                        f_v.face_normal = glm::vec3(-1.0f, 0.0f, 0.0f);
-                    } else if (face_index_min[j] == 2) {
-                        f_v.face_normal = glm::vec3(0.0f, 1.0f, 0.0f);
-                    } else if (face_index_min[j] == 3) {
-                        f_v.face_normal = glm::vec3(0.0f, -1.0f, 0.0f);
-                    } else if (face_index_min[j] == 4) {
-                        f_v.face_normal = glm::vec3(0.0f, 0.0f, 1.0f);
-                    } else if (face_index_min[j] == 5) {
-                        f_v.face_normal = glm::vec3(0.0f, 0.0f, -1.0f);
-                    }
-                    break;
-                }
-            }
-        }
-        cout += 1;
-        aa = &b;
-        bb = &a;
+    }
+    if (num_of_face == 1) {
+        f_v.is_valid = 1;
+        f_v.is_face_vertex = 1;
+        f_v.face_normal = face_normal[target_face[0]];
+        f_v.particle_position = calculate_face_vertex(line_possible[face_line_number[target_face[0]][0]], line_possible[face_line_number[target_face[0]][1]], line_possible[face_line_number[target_face[0]][2]]);
+    }
+    else if (num_of_face == 2) {
+        f_v.is_valid = 1;
+        f_v.is_face_vertex = 0;
+        f_v.particle_position = calculate_edge();
+    }
+    else {
+        f_v.is_valid = 0;
     }
     return f_v;
 }
@@ -489,7 +471,7 @@ Contact check_collision(RigidBody &a, RigidBody &b) {
 
 void process_gravity_floor(RigidBody &body) {
     if (body.get_transformation().y < 0.8) {
-        std::cout<<"bounce"<<std::endl;
+        //std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
         std::vector<glm::vec3> points;
@@ -598,8 +580,8 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
         for (int j = i + 1; j < cubes.size(); j++) {
             float dis = glm::length(cubes[i].get_transformation() - cubes[j].get_transformation());
             if (dis < sqrtf(3)) {
-                cubes[i].possible_collision.push_back(cubes[j]);
-                cubes[j].possible_collision.push_back(cubes[i]);
+                cubes[i].possible_collision.push_back(&cubes[j]);
+                cubes[j].possible_collision.push_back(&cubes[i]);
             }
         }
     }
@@ -607,18 +589,18 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
     // step2: 计算碰撞点
     for (auto &cube : cubes) {
         while (!cube.possible_collision.empty()) {
-            RigidBody tem = cube.possible_collision[cube.possible_collision.size() - 1];
-            Contact tem_contact = check_collision(tem, cube);
+            RigidBody *tem = cube.possible_collision[cube.possible_collision.size() - 1];
+            Contact tem_contact = check_collision(*tem, cube);
             if (tem_contact.is_valid) {
                 contacts.push_back(tem_contact);
             }
             int i = 0;
-            for (i = 0; i < tem.possible_collision.size(); i++) {
-                if (tem.possible_collision[i].get_transformation() == cube.get_transformation()) {
+            for (i = 0; i < tem->possible_collision.size(); i++) {
+                if (tem->possible_collision[i]->get_transformation() == cube.get_transformation()) {
                     break;
                 }
             }
-            tem.possible_collision.erase(tem.possible_collision.begin() + i);
+            tem->possible_collision.erase(tem->possible_collision.begin() + i);
             cube.possible_collision.pop_back();
         }
     }
