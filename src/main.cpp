@@ -339,11 +339,11 @@ glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::v
 	std::vector<glm::vec3> triangle_points;
 	triangle_points.clear();
 	x_for_solution = solution_of_functions(glm::vec3((line1[1].x - line1[0].x), (line2[0].x - line2[1].x), (line2[0].x - line1[0].x)), glm::vec3((line1[1].y - line1[0].y), (line2[0].y - line2[1].y), (line2[0].y - line1[0].y)));
-	triangle_points.push_back((line1[1] - line1[0]) * x + line1[0]);
+	triangle_points.push_back((line1[1] - line1[0]) * x_for_solution + line1[0]);
 	x_for_solution = solution_of_functions(glm::vec3((line2[1].x - line2[0].x), (line3[0].x - line3[1].x), (line3[0].x - line2[0].x)), glm::vec3((line2[1].y - line2[0].y), (line3[0].y - line3[1].y), (line3[0].y - line2[0].y)));
-	triangle_points.push_back((line2[1] - line2[0]) * x + line2[0]);
+	triangle_points.push_back((line2[1] - line2[0]) * x_for_solution + line2[0]);
 	x_for_solution = solution_of_functions(glm::vec3((line1[1].x - line1[0].x), (line3[0].x - line3[1].x), (line3[0].x - line1[0].x)), glm::vec3((line1[1].y - line1[0].y), (line3[0].y - line3[1].y), (line3[0].y - line1[0].y)));
-	triangle_points.push_back((line1[1] - line1[0]) * x + line1[0]);
+	triangle_points.push_back((line1[1] - line1[0]) * x_for_solution + line1[0]);
 	result_point = triangle_points[0];
 	for (int i = 1; i < 3; i++) {
 		result_point += triangle_points[i];
