@@ -267,18 +267,44 @@ glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
     return glm::vec4(n, glm::dot(p, n));
 }
 
-glm::vec3 calculate_edge() {
-    return glm::vec3(0.0f, 0.0f, 0.0f);
+// 将一个点分类放入两个不同的点集
+void add_point(std::vector<glm::vec3> &repeat_points, std::vector<glm::vec3> &single_points, glm::vec3 point) {
+    for (int i = 0; i < single_points.size(); ++i) {
+        if (single_points[i] == point) {
+            repeat_points.push_back(point);
+            single_points.erase(single_points.begin()+i);
+        } else {
+            single_points.push_back(point);
+        }
+    }
+}
+
+std::vector<glm::vec3> calculate_edge(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3, std::vector<glm::vec3> line4) {
+    // 两个三角形中共六个点，其中在一个棱上有两组重复点
+    // 两组重复点形成一条edge  一队single 点形成一条edge
+    std::vector<glm::vec3> repeat_points;
+    std::vector<glm::vec3> single_points;
+    add_point(repeat_points, single_points, line1[0]);
+    add_point(repeat_points, single_points, line1[1]);
+    add_point(repeat_points, single_points, line2[0]);
+    add_point(repeat_points, single_points, line2[1]);
+    add_point(repeat_points, single_points, line3[0]);
+    add_point(repeat_points, single_points, line3[1]);
+    add_point(repeat_points, single_points, line4[0]);
+    add_point(repeat_points, single_points, line4[1]);
+    if (repeat_points.size() != 2 || single_points.size() != 2) {
+        std::cout<<"error in edge"<<std::endl;
+    }
+
+    std::vector<glm::vec3> result;
+    result.push_back(repeat_points[0] - repeat_points[1]);
+    result.push_back(single_points[0] - single_points[1]);
+
+    return result;
 }
 
 glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
-    glm::vec3 a, b, c, result;
-    a = line1[0] + (line1[0] - line2[0]) / (line2[1] - line1[1]) * line1[1];
-    b = line2[0] + (line2[0] - line3[0]) / (line3[1] - line2[1]) * line2[1];
-    c = line1[0] + (line1[0] - line3[0]) / (line3[1] - line1[1]) * line1[1];
-    result = (a + b + c);
-    result /= 3;
-    return result;
+    return ((line1[0] + line1[1]) + (line2[0] + line2[1]) +(line3[0] + line3[1])) / 6.0f;
 }
 
 std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
@@ -315,31 +341,9 @@ std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm:
     return result_line;
 }
 
-bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, std::vector<glm::vec3> line) {
-    bool line_face_a = false;
-    glm::vec3 k;
-    for (int i = 0; i < 4; i++) {
-        if (i == 3) {
-            k = face_a[0] - face_a[3];
-        }
-        else {
-            k = face_a[i + 1] - face_a[i];
-        }
-        if ((face_a[i].x - line[0].x) / (line[1].x - k.x) >= 0 && (face_a[i].x - line[0].x) / (line[1].x - k.x) <= 1) {
-            for (int j = 0; j < 4; j++) {
-                if (j == 3) {
-                    k = face_b[0] - face_b[3];
-                }
-                else {
-                    k = face_b[j + 1] - face_b[j];
-                }
-                if ((face_b[j].x - line[0].x) / (line[1].x - k.x) >= 0 && (face_b[j].x - line[0].x) / (line[j].x - k.x) <= 1) {
-                    line_face_a = true;
-                }
-            }
-        }
-    }
-    return line_face_a;
+bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, std::vector<glm::vec3> line, std::vector<glm::vec3> line_segment) {
+
+    return true;
 }
 Contact check_collision(RigidBody& a, RigidBody& b) {
     Contact f_v;
@@ -449,34 +453,47 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             func_2f = face_function(face_p_n_b[j][0], face_p_n_b[j][4]);
             // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
-            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line)) {
-                line_possible.push_back(line);
-                face_line_number[i].push_back(line_possible.size());
-                face_line_number[j].push_back(line_possible.size());
+            std::vector<glm::vec3> line_segment;
+            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line, line_segment)) {
+                line_possible.push_back(line_segment);
+                face_line_number[i].push_back(line_possible.size() - 1);
+                face_line_number[j].push_back(line_possible.size() - 1);
             }
         }
     }
     int num_of_face = 0;
     std::vector<int> target_face;
     for (int i = 0; i < 6; i++) {
-        if (face_line_number[i].size() > 1) {
+        if (!face_line_number[i].empty()) {
             target_face.push_back(i);
             num_of_face += 1;
         }
     }
     if (num_of_face == 1) {
-        f_v.is_valid = 1;
-        f_v.is_face_vertex = 1;
+        // 单面相交情况
+        std::vector<glm::vec3> current_lines = line_possible[target_face[0]];
+        f_v.is_valid = true;
+        f_v.is_face_vertex = true;
         f_v.face_normal = face_normal[target_face[0]];
-        f_v.particle_position = calculate_face_vertex(line_possible[face_line_number[target_face[0]][0]], line_possible[face_line_number[target_face[0]][1]], line_possible[face_line_number[target_face[0]][2]]);
-    }
-    else if (num_of_face == 2) {
-        f_v.is_valid = 1;
-        f_v.is_face_vertex = 0;
-        f_v.particle_position = calculate_edge();
+        if (line_possible.size() >= 2) {
+            // 点面相交
+            // 输入三个线段， 返回一个顶点
+            // f_v.particle_position = calculate_face_vertex(line_segment[0] + line_segment[1] + line_segment[2]);
+        } else {
+            // 线面相交
+            // f_v.particle_position = 0.5f * (line_segment[0] + line_segment[1]);
+        }
+    } else if (num_of_face == 2) {
+        f_v.is_valid = true;
+        f_v.is_face_vertex = false;
+        // 线线相交
+        // 输入四条线段 返回两条棱
+        //std::vector<glm::vec3> edges = calculate_edge(line_segment[0] + line_segment[1] + line_segment[2]+ line_segment[3]);
+        //f_v.edge1 = edges[0];
+        //f_v.edge1 = edges[1];
     }
     else {
-        f_v.is_valid = 0;
+        f_v.is_valid = false;
     }
     return f_v;
 }
@@ -679,8 +696,49 @@ void check_calculate_line() {
     b_points.emplace_back(-0.5,0.45,0.7);
     b_points.emplace_back(b_n);
 
-    if(!judge_line_possibility(a_points, b_points, result)) {
-        std::cout<<"judge error"<<std::endl;
+    std::vector<glm::vec3> line_segment;
+
+    // 线过两个面
+    if(!judge_line_possibility(a_points, b_points, result, line_segment)) {
+        std::cout<<"judge error 1"<<std::endl;
+    }
+
+    a_points.clear();
+    a_points.emplace_back(0.5,0,0.5);
+    a_points.emplace_back(0.5,-0.5,0.5);
+    a_points.emplace_back(-0.5,0,0.5);
+    a_points.emplace_back(-0.5,-0.5,0.5);
+    a_points.emplace_back(a_n);
+
+    b_points.clear();
+    b_points.emplace_back(0.5,0.25,0.5);
+    b_points.emplace_back(-0.5,0.25,0.5);
+    b_points.emplace_back(0.5,0.45,0.7);
+    b_points.emplace_back(-0.5,0.45,0.7);
+    b_points.emplace_back(b_n);
+
+    // 线不过一个面
+    if(judge_line_possibility(a_points, b_points, result, line_segment)) {
+        std::cout<<"judge error 2"<<std::endl;
+    }
+
+    a_points.clear();
+    a_points.emplace_back(0.5,0,0.5);
+    a_points.emplace_back(0.5,-0.5,0.5);
+    a_points.emplace_back(-0.5,0,0.5);
+    a_points.emplace_back(-0.5,-0.5,0.5);
+    a_points.emplace_back(a_n);
+
+    b_points.clear();
+    b_points.emplace_back(0.5,0.35,0.6);
+    b_points.emplace_back(-0.5,0.35,0.6);
+    b_points.emplace_back(0.5,0.45,0.7);
+    b_points.emplace_back(-0.5,0.45,0.7);
+    b_points.emplace_back(b_n);
+
+    // 线不过两个面
+    if(judge_line_possibility(a_points, b_points, result, line_segment)) {
+        std::cout<<"judge error 3"<<std::endl;
     }
 }
 
@@ -690,7 +748,7 @@ int main()
 {
     check_calculate_line();
 
-    //exit(0);
+    exit(0);
 
 
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
