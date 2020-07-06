@@ -30,7 +30,7 @@ public:
     }
 
     glm::vec3 get_rotation_dir () {
-        return glm::normalize(this->Lt);
+        return glm::normalize(this->Wt);
     }
 
 	float get_rotation_angle() {
@@ -61,14 +61,15 @@ public:
     }
 
     void sum_Pt(glm::vec3 new_p) {
-        //std::cout<<new_p.z<<std::endl;
-        //std::cout<<Pt.z<<std::endl;
         this->Pt += new_p;
-        //std::cout<<Pt.z<<std::endl;
     }
 
     void reset_Pt() {
         this->Pt = glm::vec3(0);
+    }
+
+    void reset_Lt() {
+        this->Lt = glm::vec3(0);
     }
 
     void sum_Lt(glm::vec3 new_l) {
