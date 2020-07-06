@@ -664,6 +664,24 @@ void check_calculate_line() {
     || glm::normalize(b - result[0]) != glm::normalize(result[1])) {
         std::cout<<"calculate_line error!"<<std::endl;
     }
+
+    std::vector<glm::vec3> a_points;
+    a_points.emplace_back(0.5,0.5,0.5);
+    a_points.emplace_back(0.5,-0.5,0.5);
+    a_points.emplace_back(-0.5,0.5,0.5);
+    a_points.emplace_back(-0.5,-0.5,0.5);
+    a_points.emplace_back(a_n);
+
+    std::vector<glm::vec3> b_points;
+    b_points.emplace_back(0.5,0.25,0.5);
+    b_points.emplace_back(-0.5,0.25,0.5);
+    b_points.emplace_back(0.5,0.45,0.7);
+    b_points.emplace_back(-0.5,0.45,0.7);
+    b_points.emplace_back(b_n);
+
+    if(!judge_line_possibility(a_points, b_points, result)) {
+        std::cout<<"judge error"<<std::endl;
+    }
 }
 
 
@@ -671,6 +689,8 @@ void check_calculate_line() {
 int main()
 {
     check_calculate_line();
+
+    //exit(0);
 
 
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
