@@ -292,38 +292,43 @@ bool Is_Same_dir(glm::vec3 vector1, glm::vec3 vector2) {
 	else return false;				//比值小于0，反向
 }
 
-// 将一个点分类放入两个不同的点集
-void add_point(std::vector<glm::vec3> &repeat_points, std::vector<glm::vec3> &single_points, glm::vec3 point) {
-    for (int i = 0; i < single_points.size(); ++i) {
-        if (single_points[i] == point) {
-            repeat_points.push_back(point);
-            single_points.erase(single_points.begin()+i);
-        } else {
-            single_points.push_back(point);
-        }
-    }
-}
-
 std::vector<glm::vec3> calculate_edge(Segment line1, Segment line2, Segment line3, Segment line4) {
     // 两个三角形中共六个点，其中在一个棱上有两组重复点
     // 两组重复点形成一条edge  一队single 点形成一条edge
-    std::vector<glm::vec3> repeat_points;
-    std::vector<glm::vec3> single_points;
-    add_point(repeat_points, single_points, line1.start);
-    add_point(repeat_points, single_points, line1.end);
-    add_point(repeat_points, single_points, line2.start);
-    add_point(repeat_points, single_points, line2.end);
-    add_point(repeat_points, single_points, line3.start);
-    add_point(repeat_points, single_points, line3.end);
-    add_point(repeat_points, single_points, line4.start);
-    add_point(repeat_points, single_points, line4.end);
-    if (repeat_points.size() != 2 || single_points.size() != 2) {
-        std::cout<<"error in edge"<<std::endl;
+    glm::vec3 s1 = line1.start, s2;
+    glm::vec3 e1 = line1.end, e2;
+
+    if (s1 == line2.start) {
+        e2 = line2.end;
+    } else if (s1 == line2.end) {
+        e2 = line2.start;
+    } else if (s1 == line3.start) {
+        e2 = line3.end;
+    } else if (s1 == line3.end) {
+        e2 = line3.start;
+    } else if (s1 == line4.start) {
+        e2 = line4.end;
+    } else if (s1 == line4.end) {
+        e2 = line4.start;
+    }
+
+    if (e1 == line2.start) {
+        s2 = line2.end;
+    } else if (e1 == line2.end) {
+        s2 = line2.start;
+    } else if (e1 == line3.start) {
+        s2 = line3.end;
+    } else if (e1 == line3.end) {
+        s2 = line3.start;
+    }  else if (e1 == line4.start) {
+        s2 = line4.end;
+    } else if (e1 == line4.end) {
+        s2 = line4.start;
     }
 
     std::vector<glm::vec3> result;
-    result.push_back(repeat_points[0] - repeat_points[1]);
-    result.push_back(single_points[0] - single_points[1]);
+    result.push_back(s1 - s2);
+    result.push_back(e1 - e2);
 
     return result;
 }
@@ -866,6 +871,18 @@ void check_calculate_line() {
     || glm::normalize(b - result.ori) != glm::normalize(result.dir)) {
         std::cout<<"calculate_line error!"<<std::endl;
     }
+
+    Segment seg1(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -2.0f, 1.0f));
+    Segment seg2(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, -2.0f, 1.0f));
+    Segment seg3(glm::vec3(-2.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 2.0f));
+    Segment seg4(glm::vec3(-2.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    std::vector<glm::vec3> vec;
+    vec = calculate_edge(seg1, seg2, seg3, seg4);
+
+
+
+
+
 
     std::vector<glm::vec3> a_points;
     a_points.emplace_back(0.5,0.5,0.5);
