@@ -267,10 +267,12 @@ glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
     return glm::vec4(n, glm::dot(p, n));
 }
 
-bool Is_Same_side(float a1, float a2, float a3, float a4) {
-	if (a1 >= 0 && a2 >= 0 && a3 >= 0 && a4 >= 0) return true;
-	else if (a1 <= 0 && a2 <= 0 && a3 <= 0 && a4 <= 0) return true;
-	else return false;
+bool Is_Same_dir(glm::vec3 vector1, glm::vec3 vector2) {
+	float dx = vector1.x() / vector2.x();		
+	//float dy = vector1.y() / vector2.y();
+	//float dz = vector1.z() / vector2.z();
+	if (dx > 0) return true;		//比值大于0，同向
+	else return false;				//比值小于0，反向
 }
 
 // 将一个点分类放入两个不同的点集
@@ -389,35 +391,67 @@ Line calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec
     return Line(glm::vec3(x, y, z), glm::cross(n1, n2));
 }
 
-bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, glm::vec4 face_a_func, glm::vec4 face_b_func, std::vector<glm::vec3> line, std::vector<glm::vec3> line_segment) {
-	float A1 = face_a_func[0];
-	float B1 = face_a_func[1];
-	float C1 = face_a_func[2];
-	float D1 = face_a_func[3];
+void SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segment& line_seg) {		//如果存在 就一定是有两个交点？（有待确认）
+	float t_min = fmax(fmin(v1[0], v1[1]), fmin(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_min
+	float t_max = fmin(fmax(v1[0], v1[1]), fmax(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_max
 
-	float A2 = face_b_func[0];
-	float B2 = face_b_func[1];
-	float C2 = face_b_func[2];
-	float D2 = face_b_func[3];
-	
-	float check_a_to_b1 = A2 * face_a[0][0] + B2 * face_a[0][1] + C2 * face_a[0][2] - D2;
-	float check_a_to_b2 = A2 * face_a[1][0] + B2 * face_a[1][1] + C2 * face_a[1][2] - D2;
-	float check_a_to_b3 = A2 * face_a[2][0] + B2 * face_a[2][1] + C2 * face_a[2][2] - D2;
-	float check_a_to_b4 = A2 * face_a[3][0] + B2 * face_a[3][1] + C2 * face_a[3][2] - D2;
-	if (Is_Same_side(check_a_to_b1, check_a_to_b2, check_a_to_b3, check_a_to_b4)) {		//有限的面a 与 无限的面b没有相交
-		return false;		//没有相交的线段
+	if (tmin > tmax) return;			//如果t_min > t_max, 说明disjoint， 不设置line segment
+	else {								//如果t_min <= t_max, 说明交集存在， 设置line segment
+		line_seg.start = line.ori + t_min * line.dir;
+		line_seg.end = line.ori + t_max * line.dir;
+		return;
 	}
-	else {		//如果有限的面a 与 无限的面b可以相交，需要再算有限的面b与无限的面a是否相交
-		float check_b_to_a1 = A1 * face_b[0][0] + B1 * face_b[0][1] + C1 * face_b[0][2] - D1;
-		float check_b_to_a2 = A1 * face_b[1][0] + B1 * face_b[1][1] + C1 * face_b[1][2] - D1;
-		float check_b_to_a3 = A1 * face_b[2][0] + B1 * face_b[2][1] + C1 * face_b[2][2] - D1;
-		float check_b_to_a4 = A1 * face_b[3][0] + B1 * face_b[3][1] + C1 * face_b[3][2] - D1;
-		if (Is_Same_side(check_b_to_a1, check_b_to_a2, check_b_to_a3, check_b_to_a4)) {		//有限的面b与无限的面a没有相交
-			return false;		//没有相交的线段
-		}	
-		else {	//有限的面b与无限的面a也相交了（有相交线段）
-			return true;
+}
+
+bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, Line line, std::vector<glm::vec3> line_segment) {
+	std::vector<Line> face_a_lines;
+	std::vector<Line> face_b_lines;
+	std::vector<Segment> face_a_segs;
+	std::vector<Segment> face_b_segs;
+	for (int i = 1; i < 4; i++) {			//将面a和面b的四条边各自存放到face_a_lines和face_b_lines中		以及以线段形式存放在face_a_segs和face_b_segs
+		Line curr_a_line(face_a[i - 1], face_a[i] - face_a[i - 1]);		//Line这个类的dir变量或许需要取normalize
+		Line curr_b_line(face_b[i - 1], face_b[i] - face_b[i - 1]);
+		Segment curr_a_seg(face_a[i - 1], face_a[i]);
+		Segment curr_b_seg(face_b[i - 1], face_b[i]);
+
+		face_a_lines.pushback(curr_a_line);
+		face_b_lines.pushback(curr_b_line);
+		face_a_segs.pushback(curr_a_seg);
+		face_b_segs.pushback(curr_b_seg);
+	}
+
+	//std::vector<glm::vec3> intersection_vec_a;
+	//std::vector<glm::vec3> intersection_vec_b;
+	std::vector<float> intersection_vec_a;
+	std::vector<float> intersection_vec_b;
+	for (int i = 0; i < face_a_lines.size(); i++) {
+		glm::vec3 intersection_a = solution_lines_vertex(face_a_lines[i], line);		//计算交线与面a第i条边的交点坐标
+		glm::vec3 intersection_b = solution_lines_vertex(face_b_lines[i], line);		//计算交线与面b第i条边的交点坐标
+
+		glm::vec3 check_line1_a = face_a_segs[i].start - intersection_a;			//得到从交点到面a第i条边第一个顶点的向量
+		glm::vec3 check_line2_a = face_a_segs[i].end - intersection_a;			//得到从交点到面a第i条边第二个顶点的向量
+
+		glm::vec3 check_line1_b = face_b_segs[i].start - intersection_b;			//得到从交点到面b第i条边第一个顶点的向量
+		glm::vec3 check_line2_b = face_b_segs[i].end - intersection_b;			//得到从交点到面b第i条边第二个顶点的向量
+
+		if (!Is_Same_dir(check_line1_a, check_line2_a)) {						//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
+			float t1 = (intersection_a - line.ori).x() / line.dir.x();			//计算交点对应line方程的参数t
+			//float t2 = (intersection_a - line.ori).y() / line.dir.y();
+			//float t3 = (intersection_a - line.ori).z() / line.dir.z();
+			intersection_vec_a.pushback(t1);
 		}
+		if (!Is_Same_dir(check_line1_b, check_line2_b)) {						//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
+			float t1 = (intersection_b - line.ori).x() / line.dir.x();			//计算交点对应line方程的参数t
+			//float t2 = (intersection_b - line.ori).y() / line.dir.y();
+			//float t3 = (intersection_b - line.ori).z() / line.dir.z();
+			intersection_vec_b.pushback(t1);
+		}
+	}
+	if (intersection_vec_a.size() == 0 || intersection_vec_b.size() == 0) return false;
+	else {
+		Segment line_seg;
+		SelectSegment(intersection_vec_a, intersection_vec_b, line, line_seg);
+		return true;
 	}
 }
 Contact check_collision(RigidBody& a, RigidBody& b) {
@@ -534,7 +568,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
             Segment line_segment;
-            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], func_1f, func_2f, line, line_segment)) {
+            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line, line_segment)) {
                 line_possible.push_back(line_segment);
                 face_line_number_a[i].push_back(line_possible.size() - 1);
                 face_line_number_b[j].push_back(line_possible.size() - 1);
