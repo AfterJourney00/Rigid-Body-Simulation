@@ -328,16 +328,14 @@ std::vector<glm::vec3> calculate_edge(Segment line1, Segment line2, Segment line
     return result;
 }
 
-/*glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
-    return ((line1[0] + line1[1]) + (line2[0] + line2[1]) +(line3[0] + line3[1])) / 6.0f;
-}*/
+
 float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 	if (func2.y != 0) {
 		if ((func1.x - func1.y / func2.y * func2.x) != 0) {
 			return (func1.z - func1.y / func2.y * func2.z) / (func1.x - func1.y / func2.y * func2.x);
 		}
 		else {
-			printf("error!\n");
+			printf("error1!\n");
 			return 0;
 		}
 	}
@@ -346,7 +344,7 @@ float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 			return func2.z / func2.x;
 		}
 		else {
-			printf("error!\n");
+			printf("error2!\n");
 			return 0;
 		}
 	}
@@ -390,7 +388,7 @@ Line calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec
         }
     }
 
-    return Line(glm::vec3(x, y, z), glm::cross(n1, n2));
+    return {glm::vec3(x, y, z), glm::cross(n1, n2)};
 }
 
 void SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segment& line_seg) {		//如果存在 就一定是有两个交点？（有待确认）
@@ -421,6 +419,17 @@ bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3
 		face_a_segs.push_back(curr_a_seg);
 		face_b_segs.push_back(curr_b_seg);
 	}
+
+    Line curr_a_line(face_a[0], face_a[3] - face_a[0]);
+    Line curr_b_line(face_b[0], face_b[3] - face_b[0]);
+    Segment curr_a_seg(face_a[0], face_a[3]);
+    Segment curr_b_seg(face_b[0], face_b[3]);
+
+    face_a_lines.push_back(curr_a_line);
+    face_b_lines.push_back(curr_b_line);
+    face_a_segs.push_back(curr_a_seg);
+    face_b_segs.push_back(curr_b_seg);
+
 
 	//std::vector<glm::vec3> intersection_vec_a;
 	//std::vector<glm::vec3> intersection_vec_b;
@@ -831,7 +840,7 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
 }
 
 void check_calculate_line() {
-    /*
+
     std::cout<<"unit test calculate_line"<<std::endl;
     glm::vec3 a(0.5,0.5,0.5);
     glm::vec3 a_n(0,0,1);
@@ -851,10 +860,10 @@ void check_calculate_line() {
     if (glm::dot(func_2f, b_t) != func_2f.w){
         std::cout<<"face_function error!"<<std::endl;
     }
-    std::vector<glm::vec3> result = calculate_line(func_1f, func_2f, a_n, b_n);
+    Line result = calculate_line(func_1f, func_2f, a_n, b_n);
     glm::vec3 test_p(1.5,0.25,0.5);
-    if (glm::normalize(test_p - result[0]) != glm::normalize(result[1])
-    || glm::normalize(b - result[0]) != glm::normalize(result[1])) {
+    if (glm::normalize(test_p - result.ori) != glm::normalize(result.dir)
+    || glm::normalize(b - result.ori) != glm::normalize(result.dir)) {
         std::cout<<"calculate_line error!"<<std::endl;
     }
 
@@ -872,12 +881,15 @@ void check_calculate_line() {
     b_points.emplace_back(-0.5,0.45,0.7);
     b_points.emplace_back(b_n);
 
-    std::vector<glm::vec3> line_segment;
+    Segment line_segment;
 
     // 线过两个面
-    if(!judge_line_possibility(a_points, b_points, result, line_segment)) {
+    if(!judge_line_possibility(a_points, b_points, result, line_segment)
+    && (line_segment.start != glm::vec3(0.5,0.25,0.5) && line_segment.start != glm::vec3(-0.5,0.25,0.5))
+       && (line_segment.end != glm::vec3(0.5,0.25,0.5) && line_segment.end != glm::vec3(-0.5,0.25,0.5))) {
         std::cout<<"judge error 1"<<std::endl;
     }
+
 
     a_points.clear();
     a_points.emplace_back(0.5,0,0.5);
@@ -916,7 +928,7 @@ void check_calculate_line() {
     if(judge_line_possibility(a_points, b_points, result, line_segment)) {
         std::cout<<"judge error 3"<<std::endl;
     }
-     */
+
 }
 
 
@@ -924,6 +936,7 @@ void check_calculate_line() {
 int main()
 {
     check_calculate_line();
+    exit(0);
 
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
