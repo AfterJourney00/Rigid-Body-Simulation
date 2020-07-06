@@ -309,8 +309,47 @@ std::vector<glm::vec3> calculate_edge(std::vector<glm::vec3> line1, std::vector<
     return result;
 }
 
-glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
+/*glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
     return ((line1[0] + line1[1]) + (line2[0] + line2[1]) +(line3[0] + line3[1])) / 6.0f;
+}*/
+float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
+	if (func2.y != 0) {
+		if ((func1.x - func1.y / func2.y * func2.x) != 0) {
+			return (func1.z - func1.y / func2.y * func2.z) / (func1.x - func1.y / func2.y * func2.x);
+		}
+		else {
+			printf("error!\n");
+			return 0;
+		}
+	}
+	else {
+		if (func2.x != 0) {
+			return func2.z / func2.x;
+		}
+		else {
+			printf("error!\n");
+			return 0;
+		}
+	}
+}
+
+glm::vec3 calculate_face_vertex(std::vector<glm::vec3> line1, std::vector<glm::vec3> line2, std::vector<glm::vec3> line3) {
+	float x_for_solution;
+	glm::vec3 result_point;
+	std::vector<glm::vec3> triangle_points;
+	triangle_points.clear();
+	x_for_solution = solution_of_functions(glm::vec3((line1[1].x - line1[0].x), (line2[0].x - line2[1].x), (line2[0].x - line1[0].x)), glm::vec3((line1[1].y - line1[0].y), (line2[0].y - line2[1].y), (line2[0].y - line1[0].y)));
+	triangle_points.push_back((line1[1] - line1[0]) * x + line1[0]);
+	x_for_solution = solution_of_functions(glm::vec3((line2[1].x - line2[0].x), (line3[0].x - line3[1].x), (line3[0].x - line2[0].x)), glm::vec3((line2[1].y - line2[0].y), (line3[0].y - line3[1].y), (line3[0].y - line2[0].y)));
+	triangle_points.push_back((line2[1] - line2[0]) * x + line2[0]);
+	x_for_solution = solution_of_functions(glm::vec3((line1[1].x - line1[0].x), (line3[0].x - line3[1].x), (line3[0].x - line1[0].x)), glm::vec3((line1[1].y - line1[0].y), (line3[0].y - line3[1].y), (line3[0].y - line1[0].y)));
+	triangle_points.push_back((line1[1] - line1[0]) * x + line1[0]);
+	result_point = triangle_points[0];
+	for (int i = 1; i < 3; i++) {
+		result_point += triangle_points[i];
+	}
+	result_point /= 3;
+	return result_point;
 }
 
 std::vector<glm::vec3> calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec3 n2) {
