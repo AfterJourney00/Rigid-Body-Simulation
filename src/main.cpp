@@ -39,13 +39,14 @@ float currentFrame;
 
 #define MASS 10
 #define GRAVITY 10
-const float slow = 0.01;
+const float slow = 0.04;
+const float elasticity = 0.4;
 
 Camera *camera;
 
 void print_vec3(glm::vec3 cube) {
-    std::cout<<cube.x<<std::endl;
-    std::cout<<cube.y<<std::endl;
+    std::cout<<cube.x<<" ";
+    std::cout<<cube.y<<" ";
     std::cout<<cube.z<<std::endl;
 }
 
@@ -248,10 +249,14 @@ void process_collision(Contact con) {
         glm::vec3 pat = con.a->get_vt() + con.a->get_wt() * (con.particle_position - con.a->get_transformation());
         glm::vec3 pbt= con.b->get_vt() + con.b->get_wt() * (con.particle_position - con.b->get_transformation());
         float v_rel;
-        v_rel = glm::dot(normal, (pat - pbt));
+        v_rel = glm::dot(normal, (pat - pbt))* elasticity;
+        if (v_rel > 0) {
+            // 物体正在原理不需要处理碰撞了
+            return ;
+        }
         glm::vec3 Ja, Jb;
-        glm::vec3 det_va = v_rel * normal - con.a->get_vt();
-        glm::vec3 det_vb = -v_rel * normal - con.b->get_vt();
+        glm::vec3 det_va = v_rel * -normal - con.a->get_vt();
+        glm::vec3 det_vb = v_rel * normal - con.b->get_vt();
         Ja = det_va * con.a->get_mass();
         Jb = det_vb * con.a->get_mass();
         glm::vec3 tao_a_impulse = glm::cross((con.particle_position - con.a->get_transformation()), Ja);
@@ -670,7 +675,11 @@ void process_gravity_floor(RigidBody &body) {
 
             if (body.get_Pt().y > 2) {
                 // 初次碰撞瞬间失去一部分动量
-                body.sum_Pt(glm::vec3(0,-(body.get_Pt().y - 2.5),0));
+                body.sum_Pt(glm::vec3(0,-(body.get_Pt().y / 2),0));
+            }
+
+            if (body.get_transformation().y < 0.6) {
+                body.reset_Pt();
             }
 
 
@@ -735,6 +744,16 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
             Contact tem_contact = check_collision(*tem, cube);
             if (tem_contact.is_valid) {
                 contacts.push_back(tem_contact);
+            } else if (glm::length(tem->get_transformation() - cube.get_transformation()) < 1.0f) {
+                Contact ball_volume;
+                ball_volume.a = tem;
+                ball_volume.b = &cube;
+                ball_volume.is_face_vertex = true;
+                ball_volume.is_valid = true;
+                ball_volume.face_normal = glm::normalize((tem->get_transformation() - cube.get_transformation()));
+                ball_volume.particle_position = 0.5f * (tem->get_transformation() - cube.get_transformation());
+
+                contacts.push_back(ball_volume);
             }
             int i = 0;
             for (i = 0; i < tem->possible_collision.size(); i++) {
@@ -1071,9 +1090,11 @@ int main()
 
         //std::cout<<"before: "<<std::endl;
         //print_vec3(CubePositions[0].get_transformation());
+        //print_vec3(CubePositions[1].get_transformation());
         update_cube_positions(CubePositions);
         //std::cout<<"after: "<<std::endl;
         //print_vec3(CubePositions[0].get_transformation());
+        //print_vec3(CubePositions[1].get_transformation());
 
 
         //Update Camera Matrix

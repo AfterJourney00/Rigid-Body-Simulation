@@ -67,6 +67,10 @@ public:
         //std::cout<<Pt.z<<std::endl;
     }
 
+    void reset_Pt() {
+        this->Pt = glm::vec3(0);
+    }
+
     void sum_Lt(glm::vec3 new_l) {
         // 角动量变化值 = I−1(t) * τ impulse
         this->Lt += Iinv * new_l;
