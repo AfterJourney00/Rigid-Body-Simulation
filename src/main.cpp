@@ -507,12 +507,17 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     // line[face_index][0-2n] for n lines each face
     Line line;
     std::vector<Segment> line_possible;
-    std::vector<std::vector<int>> face_line_number;
+    std::vector<std::vector<int>> face_line_number_a;
+    std::vector<std::vector<int>> face_line_number_b;
     std::vector<int> temp_int;
     temp_int.clear();
-    face_line_number.reserve(6);
+    face_line_number_a.reserve(6);
+    face_line_number_b.reserve(6);
     for (int i = 0; i < 6; i++) {
-        face_line_number.push_back(temp_int);
+        face_line_number_a.push_back(temp_int);
+    }
+    for (int i = 0; i < 6; i++) {
+        face_line_number_b.push_back(temp_int);
     }
     for (int i = 0; i < 6; i++) {
         for (int j = i; j < 6; j++) {
@@ -525,26 +530,37 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             Segment line_segment;
             if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], func_1f, func_2f, line, line_segment)) {
                 line_possible.push_back(line_segment);
-                face_line_number[i].push_back(line_possible.size() - 1);
-                face_line_number[j].push_back(line_possible.size() - 1);
+                face_line_number_a[i].push_back(line_possible.size() - 1);
+                face_line_number_b[j].push_back(line_possible.size() - 1);
             }
         }
     }
-    int num_of_face = 0;
-    std::vector<int> target_face;
+    int num_of_face_a = 0;
+    int num_of_face_b = 0;
+    std::vector<int> target_face_a;
+    std::vector<int> target_face_b;
     for (int i = 0; i < 6; i++) {
-        if (!face_line_number[i].empty()) {
-            target_face.push_back(i);
-            num_of_face += 1;
+        if (!face_line_number_a[i].empty()) {
+            target_face_a.push_back(i);
+            num_of_face_a += 1;
         }
     }
-    if (num_of_face == 1) {
+    
+    for (int i = 0; i < 6; i++) {
+        if (!face_line_number_b[i].empty()) {
+            target_face_b.push_back(i);
+            num_of_face_b += 1;
+        }
+    }
+
+    f_v.is_valid = false;
+    if (num_of_face_a == 1) {
         // 单面相交情况
-        std::vector<glm::vec3> current_lines = line_possible[target_face[0]];
+        Segment current_lines = line_possible[target_face_a[0]];
         f_v.is_valid = true;
         f_v.is_face_vertex = true;
-        f_v.face_normal = face_normal[target_face[0]];
-        if (line_possible.size() >= 3) {
+        f_v.face_normal = face_normal[target_face_a[0]];
+        if (line_possible.size() >= 2) {
             // 点面相交
             // 输入三个线段， 返回一个顶点
             // f_v.particle_position = calculate_face_vertex(line_segment[0] + line_segment[1] + line_segment[2]);
@@ -552,18 +568,38 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // 线面相交
             // f_v.particle_position = 0.5f * (line_segment[0] + line_segment[1]);
         }
-    } else if (num_of_face == 2) {
+    } 
+    if (num_of_face_b == 1) {
+        Segment current_lines = line_possible[target_face_b[0]];
         f_v.is_valid = true;
-        f_v.is_face_vertex = false;
-        // 线线相交
-        // 输入四条线段 返回两条棱
-        //std::vector<glm::vec3> edges = calculate_edge(line_segment[0] + line_segment[1] + line_segment[2]+ line_segment[3]);
-        //f_v.edge1 = edges[0];
-        //f_v.edge1 = edges[1];
+        f_v.is_face_vertex = true;
+        f_v.face_normal = face_normal[target_face_b[0]];
+        if (line_possible.size() >= 2) {
+            // 点面相交
+            // 输入三个线段， 返回一个顶点
+            // f_v.particle_position = calculate_face_vertex(line_segment[0] + line_segment[1] + line_segment[2]);
+        }
+        else {
+            // 线面相交
+            // f_v.particle_position = 0.5f * (line_segment[0] + line_segment[1]);
+        }
     }
-    else {
-        f_v.is_valid = false;
+    if (num_of_face_b == 2) {
+        if (num_of_face_a == 2) {
+            f_v.is_valid = true;
+            f_v.is_face_vertex = false;
+            // 线线相交
+            // 输入四条线段 返回两条棱
+            //std::vector<glm::vec3> edges = calculate_edge(line_segment[0] + line_segment[1] + line_segment[2]+ line_segment[3]);
+            //f_v.edge1 = edges[0];
+            //f_v.edge1 = edges[1];
+        }
+        else {
+            printf("error\n");
+            return f_v;
+        }
     }
+    
     return f_v;
 }
 
