@@ -102,7 +102,7 @@ public:
         }
 
         this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
-        this->angle = glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
+        this->angle = -glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
     }
 
     glm::mat4 to_world() {

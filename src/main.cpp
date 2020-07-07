@@ -338,7 +338,7 @@ float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 		}
 		else {
 			printf("error1!\n");
-			return 0;
+			return -1;
 		}
 	}
 	else {
@@ -347,7 +347,7 @@ float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 		}
 		else {
 			printf("error2!\n");
-			return 0;
+			return -1;
 		}
 	}
 }
@@ -355,6 +355,9 @@ float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
 glm::vec3 solution_lines_vertex(Line line1, Line line2) {
     float x;
     x = solution_of_functions(glm::vec3(line1.dir.x, -line2.dir.x, (line2.ori.x - line1.ori.x)), glm::vec3(line1.dir.y, -line2.dir.y, (line2.ori.y - line1.ori.y)));
+    if (x == -1) {
+        return { -1,-1,-1};
+    }
     return (line1.dir * x + line1.ori);
 }
 
@@ -405,7 +408,7 @@ bool SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segm
 	}
 }
 
-bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, Line line, Segment line_segment) {
+int judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, Line line, Segment line_segment) {
 	std::vector<Line> face_a_lines;
 	std::vector<Line> face_b_lines;
 	std::vector<Segment> face_a_segs;
@@ -440,6 +443,9 @@ bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3
 	for (int i = 0; i < face_a_lines.size(); i++) {
 		glm::vec3 intersection_a = solution_lines_vertex(face_a_lines[i], line);		//计算交线与面a第i条边的交点坐标
 		glm::vec3 intersection_b = solution_lines_vertex(face_b_lines[i], line);		//计算交线与面b第i条边的交点坐标
+		if (intersection_a == glm::vec3(-1,-1,-1) || intersection_b == glm::vec3(-1,-1,-1)) {
+            return -1;
+		}
 
 		glm::vec3 check_line1_a = face_a_segs[i].start - intersection_a;			//得到从交点到面a第i条边第一个顶点的向量
 		glm::vec3 check_line2_a = face_a_segs[i].end - intersection_a;			//得到从交点到面a第i条边第二个顶点的向量
@@ -579,7 +585,12 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // result[0] 一个点 result[1] 方向   直线表达形式(a,b,c) + t * (d, e, f)
             line = calculate_line(func_1f, func_2f, face_p_n_a[i][4], face_p_n_b[j][4]);
             Segment line_segment;
-            if (judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line, line_segment)) {
+            int state = judge_line_possibility(face_p_n_a[i], face_p_n_b[j], line, line_segment);
+            if (state == -1) {
+                f_v.is_valid = false;
+                return f_v;
+            }
+            if (state) {
                 line_possible.push_back(line_segment);
                 face_line_number_a[i].push_back(line_possible.size() - 1);
                 face_line_number_b[j].push_back(line_possible.size() - 1);
@@ -618,8 +629,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // 输入三个线段， 返回一个顶点
             f_v.particle_position = calculate_face_vertex(line_possible[face_line_number_a[target_face_a[0]][0]],line_possible[face_line_number_a[target_face_a[0]][1]], line_possible[face_line_number_a[target_face_a[0]][2]]);
         }
-    } 
-    if (num_of_face_b == 1) {
+    } else if (num_of_face_b == 1) {
         Segment current_lines = line_possible[target_face_b[0]];
         f_v.is_valid = true;
         f_v.is_face_vertex = true;
@@ -629,18 +639,22 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // 输入三个线段， 返回一个顶点
             f_v.particle_position = calculate_face_vertex(line_possible[face_line_number_b[target_face_b[0]][0]],line_possible[face_line_number_b[target_face_b[0]][1]], line_possible[face_line_number_b[target_face_b[0]][2]]);
         }
-    }
-    if (num_of_face_b == 2) {
+    } else if (num_of_face_b == 2) {
         if (num_of_face_a == 2) {
             f_v.is_valid = true;
             f_v.is_face_vertex = false;
             // 线线相交
             // 输入四条线段 返回两条棱
-            std::vector<glm::vec3> edges = calculate_edge(line_possible[face_line_number_a[target_face_a[0]][0]],line_possible[face_line_number_a[target_face_a[0]][1]],line_possible[face_line_number_a[target_face_a[1]][0]],line_possible[face_line_number_a[target_face_a[1]][1]]);
+            if (face_line_number_a[target_face_a[0]].size() != 2 || face_line_number_a[target_face_a[1]].size() != 2) {
+                f_v.is_valid = false;
+                return f_v;
+            }
+            int i_1 = face_line_number_a[target_face_a[0]][0], i_2 = face_line_number_a[target_face_a[0]][1], i_3 = face_line_number_a[target_face_a[1]][0], i_4 = face_line_number_a[target_face_a[1]][1];
+            std::vector<glm::vec3> edges = calculate_edge(line_possible[i_1],line_possible[i_2],line_possible[i_3],line_possible[i_4]);
             f_v.edge1 = edges[0];
             f_v.edge1 = edges[1];
-        }
-        else {
+        } else {
+            f_v.is_valid = false;
             printf("error\n");
             return f_v;
         }
@@ -1159,7 +1173,7 @@ int main()
 
     // 以下为使用方法
     CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 30));
-    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
+    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
     //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
 
     initPMV(my_shader, lampShader, pointLightPositions);
