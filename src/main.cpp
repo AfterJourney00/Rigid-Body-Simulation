@@ -262,7 +262,7 @@ void process_collision(Contact con) {
         glm::vec3 pbt= con.b->get_vt() + con.b->get_wt() * (con.particle_position - con.b->get_transformation());
         float v_rel;
         v_rel = glm::dot(normal, (pat - pbt))* elasticity;
-        if (v_rel >= -0.01) {
+        if (v_rel >= 0) {
             // 物体正在远离不需要处理碰撞了
             return ;
         }
@@ -337,9 +337,9 @@ void process_collision(Contact con) {
         n_a = glm::normalize(n_a);
         n_b = glm::normalize(n_b);
 
-        float x = (n_a - n_b).length();
-        if ((n_a + n_b).length() < x) {
-            x = (n_a + n_b).length();
+        float x = glm::length(n_a - n_b);
+        if (glm::length(n_a + n_b) < x) {
+            x = glm::length(n_a + n_b);
         }
 
         /*
@@ -356,16 +356,29 @@ void process_collision(Contact con) {
         bottom_center_a /= 4.0f;
         bottom_center_b /= 4.0f;
         */
-        if (x < 0.1f) {
-            tao_a_impulse = (glm::dot(tao_a_impulse, glm::vec3(0, 1, 0))) * glm::vec3(0, 1, 0);
-            tao_b_impulse = (glm::dot(tao_b_impulse, glm::vec3(0, 1, 0))) * glm::vec3(0, 1, 0);
+        float height = glm::dot(con.a->get_transformation() - con.b->get_transformation(), glm::vec3(0,1,0));
+        float dis = glm::length(con.a->get_transformation() - con.b->get_transformation());
+        height = height < 0 ? - height : height;
+        if (x < 0.1f && glm::length(con.a->get_Pt()) < 5.0f && glm::length(con.b->get_Pt()) < 5.0f && (height <= 1.0f && dis < 1.2f)) {
+            glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f);
+            delt_v *= GRAVITY * time_interval * slow;
+            glm::vec3 J = delt_v * MASS;
+            con.a->reset_Pt();
+            con.b->reset_Pt();
+            //con.a->sum_Pt(8.0f*J);
+            //con.b->sum_Pt(8.0f*J);
+            tao_a_impulse = tao_a_impulse.y * glm::vec3(0, 0.1f, 0);
+            tao_b_impulse = tao_b_impulse.y * glm::vec3(0, 0.1f, 0);
+
             //tao_a_impulse = glm::vec3(0.0f, 0.0f, 0.0f);
             //tao_b_impulse = glm::vec3(0.0f, 0.0f, 0.0f);
+        } else {
+            con.a->sum_Pt(Ja);
+            con.b->sum_Pt(Jb);
         }
 
-        con.a->sum_Pt(Ja);
+
         con.a->sum_Lt(tao_a_impulse * 0.1f);
-        con.b->sum_Pt(Jb);
         con.b->sum_Lt(tao_b_impulse* 0.1f);
     }
 }
@@ -1122,7 +1135,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
+    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1317,22 +1330,22 @@ int main()
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 3.0f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
-    //CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
-    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
-    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 45));
-    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.0f, 0.0f), glm::vec3(20,0,0),glm::vec3(0,0,1), 45));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
+    CubePositions.push_back(create_body(glm::vec3(16.0f, 6.0f, 0.0f), glm::vec3(-40,0,0),glm::vec3(0,0,1), 45));
+    //CubePositions.push_back(create_body(glm::vec3(-16.0f, 6.0f, 0.0f), glm::vec3(40,0,0),glm::vec3(0,0,1), 45));
     //CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
     //CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 1.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    //CubePositions.push_back(create_body(glm::vec3(0.0f, 1.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    //CubePositions.push_back(create_body(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
     while (!glfwWindowShouldClose(window))
     {
         clock_t startTime, endTime;
-		clock_t time_sum;
+        clock_t time_sum;
         startTime = clock();		//计时开始
         // input
         // -----
@@ -1427,11 +1440,11 @@ int main()
         endTime = clock();			//计时结束
         clock_t duration = endTime - startTime;		//本次while经过了duration
         //if (duration < time_interval) _sleep(time_interval - duration);		//如果duration太小，暂停至time_interval
-		time_sum += duration;
-		if (time_sum >= 1000) {		//每秒多从天上掉落一个cube
-			CubePositions.push_back(create_body(glm::vec3(0.0f, 4.5f, 0.0f), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0, 200));
-			time_sum = 0;
-		}
+        time_sum += duration;
+        if (time_sum >= 1000) {		//每秒多从天上掉落一个cube
+            // CubePositions.push_back(create_body(glm::vec3(0.0f, 4.5f, 0.0f), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0, 200));
+            time_sum = 0;
+        }
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
