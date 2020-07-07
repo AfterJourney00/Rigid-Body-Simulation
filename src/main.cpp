@@ -443,6 +443,8 @@ int judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3>
 	for (int i = 0; i < face_a_lines.size(); i++) {
 		glm::vec3 intersection_a = solution_lines_vertex(face_a_lines[i], line);		//计算交线与面a第i条边的交点坐标
 		glm::vec3 intersection_b = solution_lines_vertex(face_b_lines[i], line);		//计算交线与面b第i条边的交点坐标
+		//print_vec3(intersection_a);
+		//print_vec3(intersection_b);
 		if (intersection_a == glm::vec3(-1,-1,-1) || intersection_b == glm::vec3(-1,-1,-1)) {
             return -1;
 		}
@@ -453,17 +455,14 @@ int judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3>
 		glm::vec3 check_line1_b = face_b_segs[i].start - intersection_b;			//得到从交点到面b第i条边第一个顶点的向量
 		glm::vec3 check_line2_b = face_b_segs[i].end - intersection_b;			//得到从交点到面b第i条边第二个顶点的向量
 
-		if (!Is_Same_dir(check_line1_a, check_line2_a)) {						//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
-			float t1 = (intersection_a - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t
+		if (!Is_Same_dir(check_line1_a, check_line2_a) && !Is_Same_dir(check_line1_b, check_line2_b)) {	//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
+			float t1 = (intersection_a - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t1
+			float t2 = (intersection_b - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t2
 			//float t2 = (intersection_a - line.ori).y() / line.dir.y();
 			//float t3 = (intersection_a - line.ori).z() / line.dir.z();
 			intersection_vec_a.push_back(t1);
-		}
-		if (!Is_Same_dir(check_line1_b, check_line2_b)) {						//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
-			float t1 = (intersection_b - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t
-			//float t2 = (intersection_b - line.ori).y() / line.dir.y();
-			//float t3 = (intersection_b - line.ori).z() / line.dir.z();
-			intersection_vec_b.push_back(t1);
+			intersection_vec_b.push_back(t2);
+			if (_isnanf(t1) || _isnanf(t2)) return -1;						//遇到nan, 返回-1
 		}
 	}
 	if (intersection_vec_a.empty() || intersection_vec_b.empty()) return false;
@@ -748,10 +747,10 @@ void process_gravity_floor(RigidBody &body) {
             //std::cout<<"J"<<std::endl;
             //print_vec3(J);
 
-            std::cout<<"tao_impulse"<<std::endl;
-            print_vec3(tao_impulse);
+            //std::cout<<"tao_impulse"<<std::endl;
+            //print_vec3(tao_impulse);
             // remove_noise(tao_impulse);
-            print_vec3(tao_impulse);
+            //print_vec3(tao_impulse);
 
             body.sum_Lt(tao_impulse);
             return ;
@@ -981,7 +980,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
+    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1192,8 +1191,8 @@ int main()
         //std::cout<<"before: "<<std::endl;
         //std::cout<<"Xt: ";
         //print_vec3(CubePositions[0].get_transformation());
-        std::cout<<"Lt: ";
-        print_vec3(CubePositions[0].get_Lt());
+        //std::cout<<"Lt: ";
+        //print_vec3(CubePositions[0].get_Lt());
         //std::cout<<"Angle: ";
         //std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());

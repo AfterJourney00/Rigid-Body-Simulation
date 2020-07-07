@@ -1,0 +1,4 @@
+C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation/build/CMakeFiles/glad.dir
+C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation/build/CMakeFiles/opengl-basic.dir
+C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation/build/CMakeFiles/ZERO_CHECK.dir
