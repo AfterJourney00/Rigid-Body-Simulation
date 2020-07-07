@@ -1122,7 +1122,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
+    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1332,6 +1332,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         clock_t startTime, endTime;
+		clock_t time_sum;
         startTime = clock();		//计时开始
         // input
         // -----
@@ -1426,6 +1427,11 @@ int main()
         endTime = clock();			//计时结束
         clock_t duration = endTime - startTime;		//本次while经过了duration
         //if (duration < time_interval) _sleep(time_interval - duration);		//如果duration太小，暂停至time_interval
+		time_sum += duration;
+		if (time_sum >= 1000) {		//每秒多从天上掉落一个cube
+			CubePositions.push_back(create_body(glm::vec3(0.0f, 4.5f, 0.0f), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0, 200));
+			time_sum = 0;
+		}
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
