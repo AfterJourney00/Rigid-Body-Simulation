@@ -13,7 +13,7 @@ public:
         this->Transformation = Xt;
         this->mass = m;
         this->Pt = glm::vec3(0.0f);
-        this->Lt = glm::vec3(0.0f, 1.0f, 0.0f);
+        this->Lt = glm::vec3(0.0f);
         this->angle = 0;
     }
 
@@ -30,6 +30,9 @@ public:
     }
 
     glm::vec3 get_rotation_dir () {
+        if (this->Wt == glm::vec3(0)){
+            return glm::vec3(0);
+        }
         return glm::normalize(this->Wt);
     }
 
@@ -97,7 +100,9 @@ public:
     glm::mat4 to_world() {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, this->get_transformation());
-        model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        if (glm::dot(this->get_rotation_dir(), glm::vec3(1)) != 0) {
+            model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        }
         return model;
     }
 

@@ -89,7 +89,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void initPMV(Shader my_shader, Shader light_shader, const glm::vec3 pointLightPositions[]) {
-    camera = new Camera (glm::vec3(0.0f, 4.0f, 3.0f));
+    camera = new Camera (glm::vec3(0.0f, 2.0f, 5.0f));
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
     my_shader.use();
@@ -216,11 +216,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
     shader.use();
 
     for (auto cube : cubes) {
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cube.get_transformation());
-        if (cube.get_rotation_dir() != glm::vec3(0)) {
-            model = glm::rotate(model, glm::radians(cube.get_rotation_angle()), cube.get_rotation_dir());
-        }
+        glm::mat4 model = cube.to_world();
         shader.setMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -231,7 +227,7 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 
 // 生成rigid body的函数
 // 输入为初始位置
-RigidBody create_body(glm::vec3 init_pos, glm::vec3 init_P = glm::vec3(0,0,0), glm::vec3 dir = glm::vec3(0,1,0), float angle = 0) {
+RigidBody create_body(glm::vec3 init_pos, glm::vec3 init_P = glm::vec3(0,0,0), glm::vec3 dir = glm::vec3(0), float angle = 0) {
     RigidBody new_body(init_pos, MASS, dir, angle);		//初始时init_pos为x(t)，质量设置为10
     new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
     new_body.setIbody(MASS, 1.0f);
@@ -396,15 +392,15 @@ Line calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec
     return {glm::vec3(x, y, z), glm::cross(n1, n2)};
 }
 
-void SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segment& line_seg) {		//如果存在 就一定是有两个交点？（有待确认）
+bool SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segment& line_seg) {		//如果存在 就一定是有两个交点？（有待确认）
 	float t_min = fmax(fmin(v1[0], v1[1]), fmin(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_min
 	float t_max = fmin(fmax(v1[0], v1[1]), fmax(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_max
 
-	if (t_min > t_max) return;			//如果t_min > t_max, 说明disjoint， 不设置line segment
+	if (t_min > t_max) return false;			//如果t_min > t_max, 说明disjoint， 不设置line segment
 	else {								//如果t_min <= t_max, 说明交集存在， 设置line segment
 		line_seg.start = line.ori + t_min * line.dir;
 		line_seg.end = line.ori + t_max * line.dir;
-		return;
+		return true;
 	}
 }
 
@@ -465,8 +461,7 @@ bool judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3
 	}
 	if (intersection_vec_a.empty() || intersection_vec_b.empty()) return false;
 	else {
-		SelectSegment(intersection_vec_a, intersection_vec_b, line, line_segment);
-		return true;
+		return SelectSegment(intersection_vec_a, intersection_vec_b, line, line_segment);
 	}
 }
 Contact check_collision(RigidBody& a, RigidBody& b) {
@@ -617,13 +612,10 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
         f_v.is_valid = true;
         f_v.is_face_vertex = true;
         f_v.face_normal = face_normal[target_face_a[0]];
-        if (line_possible.size() >= 2) {
+        if (line_possible.size() == 3) {
             // 点面相交
             // 输入三个线段， 返回一个顶点
             f_v.particle_position = calculate_face_vertex(line_possible[face_line_number_a[target_face_a[0]][0]],line_possible[face_line_number_a[target_face_a[0]][1]], line_possible[face_line_number_a[target_face_a[0]][2]]);
-        } else {
-            // 线面相交
-            // f_v.particle_position = 0.5f * (line_segment[0] + line_segment[1]);
         }
     } 
     if (num_of_face_b == 1) {
@@ -631,14 +623,10 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
         f_v.is_valid = true;
         f_v.is_face_vertex = true;
         f_v.face_normal = face_normal[target_face_b[0]];
-        if (line_possible.size() >= 2) {
+        if (line_possible.size() == 3) {
             // 点面相交
             // 输入三个线段， 返回一个顶点
             f_v.particle_position = calculate_face_vertex(line_possible[face_line_number_b[target_face_b[0]][0]],line_possible[face_line_number_b[target_face_b[0]][1]], line_possible[face_line_number_b[target_face_b[0]][2]]);
-        }
-        else {
-            // 线面相交
-            // f_v.particle_position = 0.5f * (line_segment[0] + line_segment[1]);
         }
     }
     if (num_of_face_b == 2) {
@@ -648,8 +636,8 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             // 线线相交
             // 输入四条线段 返回两条棱
             std::vector<glm::vec3> edges = calculate_edge(line_possible[face_line_number_a[target_face_a[0]][0]],line_possible[face_line_number_a[target_face_a[0]][1]],line_possible[face_line_number_a[target_face_a[1]][0]],line_possible[face_line_number_a[target_face_a[1]][1]]);
-            //f_v.edge1 = edges[0];
-            //f_v.edge1 = edges[1];
+            f_v.edge1 = edges[0];
+            f_v.edge1 = edges[1];
         }
         else {
             printf("error\n");
@@ -724,14 +712,14 @@ void process_gravity_floor(RigidBody &body) {
                 body.sum_Pt(glm::vec3(0,-(body.get_Pt().y / 2),0));
             }
 
-            if (body.get_transformation().y < 0.6 && body.get_Pt().y < 2) {
+            if (body.get_transformation().y < 0.6 && body.get_Pt().y < 1) {
                 body.reset_Pt();
             }
 
 
-            glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f);
+            glm::vec3 delt_v = glm::dot(glm::vec3(0, -1.0f, 0.0f), body.get_vt()) * glm::vec3(0, 1.0f, 0.0f);
             // 反弹为0.5的重力
-            delt_v *= GRAVITY * time_interval * 0.5f;
+            delt_v *= elasticity;
             glm::vec3 J = delt_v * body.get_mass();
             body.sum_Pt(J);
 
@@ -741,7 +729,7 @@ void process_gravity_floor(RigidBody &body) {
             glm::vec3 tao_impulse = glm::cross(re_xt, J);
             remove_noise(tao_impulse);
 
-            body.sum_Lt(tao_impulse);
+            //body.sum_Lt(tao_impulse);
             return ;
         }
 
@@ -761,8 +749,14 @@ void process_gravity_floor(RigidBody &body) {
 
 void move_bodies(RigidBody &body) {
     // 根据动量角动量移动物体
-    glm::vec3 curr_v = body.get_Pt() / (float) MASS;				//计算并更新此时刻物体的 linear velocity
-    glm::vec3 curr_w = body.get_Lt() / (float) body.get_Ibody();	//计算并更新此时刻物体的 angular velocity
+    glm::vec3 curr_v = body.get_Pt() / (float) MASS;
+    //计算并更新此时刻物体的 linear velocity
+    glm::vec3 curr_w;
+    if (body.get_Lt() != glm::vec3(0)) {
+        curr_w = body.get_Lt() / (float) body.get_Ibody();
+    }
+    curr_w = glm::vec3(0);
+    	//计算并更新此时刻物体的 angular velocity
     body.UpdateStates(curr_v, curr_w);
 }
 
@@ -952,8 +946,8 @@ void check_calculate_line() {
 
 int main()
 {
-    check_calculate_line();
-    exit(0);
+    //check_calculate_line();
+    //exit(0);
 
     std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
@@ -1146,9 +1140,9 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 0.5f, 0.0f)));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 1.0f, 0.0f)));
-    CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 2.5f, 0.0f)));
+    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
+    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -1164,8 +1158,12 @@ int main()
         changePMV(my_shader, lampShader);
 
         //std::cout<<"before: "<<std::endl;
+        std::cout<<"Xt: ";
         print_vec3(CubePositions[0].get_transformation());
-        print_vec3(CubePositions[1].get_transformation());
+        std::cout<<"Lt: ";
+        print_vec3(CubePositions[0].get_Lt());
+        std::cout<<"Angle: ";
+        std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());
         update_cube_positions(CubePositions);
         //std::cout<<"after: "<<std::endl;
