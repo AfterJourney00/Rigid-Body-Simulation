@@ -14,6 +14,7 @@
 #include "../inc/shader_m.h"
 #include "tiny_obj_loader.h"
 #include <math.h>
+#include <algorithm>
 
 
 
@@ -227,11 +228,12 @@ void drawCubes(Shader shader, const std::vector<RigidBody>& cubes, unsigned int 
 
 // 生成rigid body的函数
 // 输入为初始位置
-RigidBody create_body(glm::vec3 init_pos, glm::vec3 init_P = glm::vec3(0,0,0), glm::vec3 dir = glm::vec3(0), float angle = 0) {
+RigidBody create_body(glm::vec3 init_pos, glm::vec3 init_P = glm::vec3(0,0,0), glm::vec3 dir = glm::vec3(0), float angle = 0, int id = -1) {
     RigidBody new_body(init_pos, MASS, dir, angle);		//初始时init_pos为x(t)，质量设置为10
     new_body.setForce(glm::vec3(0.0f, 0.0f, -GRAVITY * MASS));		//初始时刻受到重力
     new_body.setIbody(MASS, 1.0f);
     new_body.sum_Pt(init_P);
+    new_body.id = id;
     return new_body;
 }
 
@@ -268,13 +270,13 @@ void process_collision(Contact con) {
         glm::vec3 tao_b_impulse = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
         // 更新body a和b的动量和角动量
 
-        remove_noise(tao_a_impulse);
-        remove_noise(tao_b_impulse);
+        //remove_noise(tao_a_impulse);
+        //remove_noise(tao_b_impulse);
 
         con.a->sum_Pt(Ja);
-        con.a->sum_Lt(tao_a_impulse);
+        con.a->sum_Lt(tao_a_impulse * 0.1f);
         con.b->sum_Pt(Jb);
-        con.b->sum_Lt(tao_b_impulse);
+        con.b->sum_Lt(tao_b_impulse* 0.1f);
     }
 }
 glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
@@ -660,6 +662,10 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     return f_v;
 }
 
+bool compare_height(glm::vec3 a,glm::vec3 b) {
+    return a.y < b.y;
+}
+
 
 
 void process_gravity_floor(RigidBody &body) {
@@ -689,16 +695,32 @@ void process_gravity_floor(RigidBody &body) {
 
         double min_y = 10;
         std::vector<int> repeat_index;
+        std::vector<glm::vec3> bottom;
         repeat_index.push_back(-1);
         for (int i = 0;i < points.size();i++) {
+            bottom.push_back(points[i]);
             if (points[i].y < min_y) {
                 repeat_index.clear();
                 repeat_index.push_back(i);
                 min_y = points[i].y;
-            } else if (points[i].y - min_y < 0.01) {
+            } else if (points[i].y - min_y < 0.0001) {
                 repeat_index.push_back(i);
             }
         }
+
+        // 稳定力
+        std::sort(bottom.begin(), bottom.end(), compare_height);
+        glm::vec3 bottom_center(0);
+        for (int j = 0; j < 4; ++j) {
+            bottom_center += bottom[j];
+        }
+        bottom_center /= 4.0f;
+        glm::vec3 bottom_normal = glm::cross((bottom[0] - bottom[1]), (bottom[0] - bottom[2]));
+        if (glm::dot((body.get_transformation() - bottom_center), bottom_normal) > 0) {
+            bottom_normal *= -1.0f;
+        }
+
+
         if (min_y <= 0.01) {
             // 一条边和地板相撞
             glm::vec3 hit_point;
@@ -717,6 +739,7 @@ void process_gravity_floor(RigidBody &body) {
                     break;
             }
 
+
             // 更新动量
             float v_rel = glm::dot(glm::vec3(0, -1.0f, 0.0f), body.get_vt());
             glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f) * v_rel - body.get_vt();
@@ -724,18 +747,22 @@ void process_gravity_floor(RigidBody &body) {
             glm::vec3 J = delt_v * body.get_mass();
             if (body.get_Pt().y < 0) {
                 J += glm::vec3(0, -body.get_Pt().y, 0);
-                std::cout<<"J: "<<std::endl;
-                print_vec3(J);
+                //std::cout<<"J: "<<std::endl;
+                //print_vec3(J);
                 body.sum_Pt(J);
             }
 
-            //J *= 0.1f;
+
+            J *= 0.1f;
 
             delt_v = glm::vec3(0, -1.0f, 0.0f);
             delt_v *= GRAVITY * time_interval * slow;
             glm::vec3 J_gravity = delt_v * body.get_mass();
-            J += J_gravity;
+            J += J_gravity * 0.1f;
 
+            glm::vec3 tao_steady(0);
+
+            tao_steady = -glm::cross(glm::normalize(bottom_normal), glm::vec3(0,1,0)) * MASS;
 
             // 更新角动量
             glm::vec3 re_xt = hit_point - body.get_transformation();
@@ -746,12 +773,53 @@ void process_gravity_floor(RigidBody &body) {
             //std::cout<<"J"<<std::endl;
             //print_vec3(J);
 
-            std::cout<<"tao_impulse"<<std::endl;
-            print_vec3(tao_impulse);
             remove_noise(tao_impulse);
             //cprint_vec3(tao_impulse);
+            if (glm::length(body.get_Pt()) < 1.0f && body.id == 200) {
+                std::cout<<"tao_steady: "<<std::endl;
+                print_vec3(tao_steady);
+            }
 
-            body.sum_Lt(tao_impulse);
+            std::cout<<glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0))<<std::endl;
+
+
+            if (glm::length(body.get_Pt()) < 10.0f || glm::length(body.get_Lt()) < 10.0f) {
+                if (glm::length(body.get_Pt()) < 6.0f && glm::normalize(bottom_normal) != glm::vec3(0,1,0)) {
+                    // 慢速归位
+                    if (glm::length(body.get_Pt()) < 2.0f && glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0)) < 0.8) {
+                        body.sum_Lt(body.get_Lt() * -0.2f);
+                        if (glm::length(tao_steady) < 0.01) {
+                            body.sum_Lt( tao_steady);
+                        } else {
+                            body.sum_Lt(1.0f * tao_steady);
+                        }
+                        //std::cout<<"tao after"<<std::endl;
+                        //print_vec3(body.get_Lt());
+                    } else {
+                        body.sum_Lt(body.get_Lt() * -0.8f);
+                        //std::cout<<"tao_steady"<<std::endl;
+                        //print_vec3(0.4f * tao_steady);
+                        body.sum_Lt(0.4f * tao_steady);
+                        //std::cout<<"tao after"<<std::endl;
+                        //print_vec3(body.get_Lt());
+                    }
+                } else {
+                    // 减速过程
+                    body.sum_Lt(body.get_Lt() * -0.6f);
+                    //std::cout<<"tao_steady"<<std::endl;
+                    //print_vec3(0.5f * tao_steady + 0.5f * tao_impulse);
+
+                    // 刹车过程
+                    body.sum_Lt(0.4f * tao_steady);
+                }
+
+            } else {
+                //tao_impulse += tao_steady;
+                //std::cout<<"tao_impulse"<<std::endl;
+                //print_vec3(tao_impulse);
+                body.sum_Lt(tao_impulse * 0.8f);
+            }
+
             return ;
         }
 
@@ -789,13 +857,14 @@ void move_bodies(RigidBody &body) {
 void process_rest(RigidBody &body) {
     //print_vec3(body.get_Pt());
     //std::cout<< glm::length(body.get_Pt())<<std::endl;
-    if (glm::length(body.get_Pt()) <= 1/MASS) {
+    if (glm::length(body.get_Pt()) <= 0.1f) {
         body.reset_Pt();
-    } else if (glm::length(body.get_Lt()) <= 0.1f) {
+    } else if (glm::length(body.get_Lt()) <= 0.01f) {
+        std::cout<<"rest Lt"<<std::endl;
         body.reset_Lt();
     } else {
         // 空气阻力等衰减
-        body.sum_Pt(-0.01f*body.get_Pt());
+        body.sum_Pt(-0.005f*body.get_Pt());
 
         body.sum_Lt(-0.01f*body.get_Lt());
     }
@@ -823,9 +892,9 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
         while (!cube.possible_collision.empty()) {
             RigidBody *tem = cube.possible_collision[cube.possible_collision.size() - 1];
             Contact tem_contact = check_collision(*tem, cube);
-            if (false) {
-                // contacts.push_back(tem_contact);
-            } else if (glm::length(tem->get_transformation() - cube.get_transformation()) < 1.0f) {
+            if (tem_contact.is_valid) {
+                contacts.push_back(tem_contact);
+            } else if (glm::length(tem->get_transformation() - cube.get_transformation()) < 1.2f) {
                 Contact ball_volume;
                 ball_volume.a = tem;
                 ball_volume.b = &cube;
@@ -1170,9 +1239,12 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 30));
-    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
-    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 30));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
+    CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 30));
+    CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
+    CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
+
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -1190,8 +1262,8 @@ int main()
         //std::cout<<"before: "<<std::endl;
         //std::cout<<"Xt: ";
         //print_vec3(CubePositions[0].get_transformation());
-        std::cout<<"Lt: ";
-        print_vec3(CubePositions[0].get_Lt());
+        //std::cout<<"Lt: ";
+        //print_vec3(CubePositions[0].get_Lt());
         //std::cout<<"Angle: ";
         //std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());

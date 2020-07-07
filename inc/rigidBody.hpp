@@ -129,7 +129,7 @@ public:
 
     // һ��rigidbody��Ӧһ����ײ��
     std::vector<RigidBody*> possible_collision;
-
+    int id;
 private:
 
     // const quantities
