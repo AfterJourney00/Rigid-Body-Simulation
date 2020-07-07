@@ -104,7 +104,7 @@ public:
         this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
         this->angle = -glm::length(wt);		//更新物体旋转角度
         // 				time_interval还未定义
-        std::cout<<"angle: "<<angle<<std::endl;
+        //std::cout<<"angle: "<<angle<<std::endl;
         this->update_rotation();
     }
 

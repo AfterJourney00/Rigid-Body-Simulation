@@ -52,6 +52,10 @@ void print_vec3(glm::vec3 cube) {
     std::cout<<cube.z<<std::endl;
 }
 
+bool compare_height(glm::vec3 a,glm::vec3 b) {
+    return a.y < b.y;
+}
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -275,6 +279,89 @@ void process_collision(Contact con) {
         remove_noise(tao_b_impulse);
         remove_noise(Ja);
         remove_noise(Jb);
+
+        std::vector<glm::vec3> points_a;
+        glm::mat4 model_a = con.a->to_world();
+        points_a.reserve(8);
+        glm::vec3 tem = glm::vec4(0.5, 0.5, 0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(0.5, 0.5, -0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, 0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, -0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, 0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, -0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, 0.5, 1) * model_a;
+        points_a.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, -0.5, 1) * model_a;
+        points_a.push_back(tem);
+        //cube b
+        std::vector<glm::vec3> points_b;
+        glm::mat4 model_b = con.b->to_world();
+        points_b.reserve(8);
+        tem = glm::vec4(0.5, 0.5, 0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(0.5, 0.5, -0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, 0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(0.5, -0.5, -0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, 0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(-0.5, 0.5, -0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, 0.5, 1) * model_b;
+        points_b.push_back(tem);
+        tem = glm::vec4(-0.5, -0.5, -0.5, 1) * model_b;
+        points_b.push_back(tem);
+
+        std::vector<glm::vec3> bottom_a, bottom_b;
+        for (int i = 0; i < points_a.size(); i++) {
+            bottom_a.push_back(points_a[i]);
+            bottom_b.push_back(points_b[i]);
+        }
+
+        // 稳定力
+        std::sort(bottom_a.begin(), bottom_a.end(), compare_height);
+        std::sort(bottom_b.begin(), bottom_b.end(), compare_height);
+
+        glm::vec3 n_a, n_b;
+        n_a = glm::cross((bottom_a[0] - bottom_a[1]), (bottom_a[1] - bottom_a[2]));
+        n_b = glm::cross((bottom_b[0] - bottom_b[1]), (bottom_b[1] - bottom_b[2]));
+
+        n_a = glm::normalize(n_a);
+        n_b = glm::normalize(n_b);
+
+        float x = (n_a - n_b).length();
+        if ((n_a + n_b).length() < x) {
+            x = (n_a + n_b).length();
+        }
+
+        /*
+
+        glm::vec3 bottom_center_a(0);
+        glm::vec3 bottom_center_b(0);
+        for (int j = 0; j < 4; ++j) {
+            bottom_center_a += bottom_a[j];
+        }
+
+        for (int j = 0; j < 4; ++j) {
+            bottom_center_b += bottom_b[j];
+        }
+        bottom_center_a /= 4.0f;
+        bottom_center_b /= 4.0f;
+        */
+        if (x < 0.1f) {
+            tao_a_impulse = (glm::dot(tao_a_impulse, glm::vec3(0, 1, 0))) * glm::vec3(0, 1, 0);
+            tao_b_impulse = (glm::dot(tao_b_impulse, glm::vec3(0, 1, 0))) * glm::vec3(0, 1, 0);
+            //tao_a_impulse = glm::vec3(0.0f, 0.0f, 0.0f);
+            //tao_b_impulse = glm::vec3(0.0f, 0.0f, 0.0f);
+        }
 
         con.a->sum_Pt(Ja);
         con.a->sum_Lt(tao_a_impulse * 0.1f);
@@ -665,14 +752,10 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
     return f_v;
 }
 
-bool compare_height(glm::vec3 a,glm::vec3 b) {
-    return a.y < b.y;
-}
-
 
 
 void process_gravity_floor(RigidBody &body) {
-    if (body.get_transformation().y < 0.7) {
+    if (body.get_transformation().y < sqrt(2)/2) {
         //std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
@@ -724,7 +807,7 @@ void process_gravity_floor(RigidBody &body) {
         }
 
 
-        if (min_y <= 0.01) {
+        if (min_y <= 0.1) {
             // 一条边和地板相撞
             glm::vec3 hit_point;
             switch(repeat_index.size()) {
@@ -777,11 +860,6 @@ void process_gravity_floor(RigidBody &body) {
             //print_vec3(J);
 
             remove_noise(tao_impulse);
-            //cprint_vec3(tao_impulse);
-            if (glm::length(body.get_Pt()) < 1.0f && body.id == 200) {
-                std::cout<<"tao_steady: "<<std::endl;
-                print_vec3(tao_steady);
-            }
 
             std::cout<<glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0))<<std::endl;
 
@@ -791,15 +869,11 @@ void process_gravity_floor(RigidBody &body) {
                     // 慢速归位
                     if (glm::length(body.get_Pt()) < 2.0f && glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0)) < 0.95) {
                         body.sum_Lt(body.get_Lt() * -0.9f);
-                        if (glm::length(tao_steady) < 0.01) {
-                            body.sum_Lt( tao_steady);
-                        } else {
-                            body.sum_Lt(1.0f * tao_steady);
-                        }
+                        body.sum_Lt(1.0f * tao_steady);
                         //std::cout<<"tao after"<<std::endl;
                         //print_vec3(body.get_Lt());
                     } else {
-                        body.sum_Lt(body.get_Lt() * -0.8f);
+                        body.sum_Lt(body.get_Lt() * -0.9f);
                         //std::cout<<"tao_steady"<<std::endl;
                         //print_vec3(0.4f * tao_steady);
                         body.sum_Lt(0.4f * tao_steady);
@@ -817,18 +891,20 @@ void process_gravity_floor(RigidBody &body) {
                 }
 
             } else {
-                //tao_impulse += tao_steady;
+                tao_impulse += tao_steady;
                 //std::cout<<"tao_impulse"<<std::endl;
                 //print_vec3(tao_impulse);
-                body.sum_Lt(tao_impulse * 0.8f);
+                body.sum_Lt(tao_impulse * 0.4f);
             }
+            //body.sum_Lt(body.get_Lt() * -0.9f);
+            //body.sum_Lt( tao_steady);
 
             return ;
         }
 
 
     }
-    if (body.get_transformation().y >= 0.7) {
+    if (body.get_transformation().y >= sqrt(2)/2) {
         // 物体没有接触地面
         // std::cout<<"gravity"<<std::endl;
         glm::vec3 delt_v = glm::vec3(0, -1.0f, 0.0f);
@@ -1241,13 +1317,15 @@ int main()
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 3.0f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
-    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
+    //CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
+    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
     //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 45));
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.0f, 0.0f), glm::vec3(20,0,0),glm::vec3(0,0,1), 45));
-    CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
-    CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
-
+    //CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
+    //CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 1.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
