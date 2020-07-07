@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include "glm/gtc/matrix_transform.hpp"
 #include <iostream>
+#include <time.h>
 #include <vector>
 #include <inc/camera.h>
 
@@ -1048,7 +1049,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
+    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1249,7 +1250,9 @@ int main()
     initPMV(my_shader, lampShader, pointLightPositions);
 
     while (!glfwWindowShouldClose(window))
-    {
+    {	
+		clock_t startTime, endTime;
+		startTime = clock();		//计时开始
         // input
         // -----
         processInput(window);
@@ -1339,6 +1342,10 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+
+		endTime = clock();			//计时结束
+		clock_t duration = endTime - startTime;		//本次while经过了duration
+		if (duration < time_interval) _sleep(time_interval - duration);		//如果duration太小，暂停至time_interval
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
