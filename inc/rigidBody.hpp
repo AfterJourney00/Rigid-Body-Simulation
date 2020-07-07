@@ -34,7 +34,7 @@ public:
 
     glm::vec3 get_rotation_dir () {
         if (this->Wt == glm::vec3(0)) {
-            return this->last_dir;
+            return glm::normalize(this->last_dir);
         }
         return glm::normalize(this->Wt);
     }
@@ -102,7 +102,10 @@ public:
         }
 
         this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
-        this->angle = -glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
+        this->angle = -glm::length(wt);		//更新物体旋转角度
+        // 				time_interval还未定义
+        std::cout<<"angle: "<<angle<<std::endl;
+        this->update_rotation();
     }
 
     glm::mat4 to_world() {
@@ -111,16 +114,22 @@ public:
         model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
         model *= Rotation_state;
         // 更新rotate state
-        this->Rotation_state = glm::rotate(this->Rotation_state, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        // 不能写在这里，会导致不更新，未知原因
+        //        this->Rotation_state = glm::rotate(this->Rotation_state, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
         if (model == Rotation_state) {
             std::cout<<"ERROR"<<std::endl;
         }
         return model;
     }
 
+    void update_rotation() {
+        this->Rotation_state = glm::rotate(this->Rotation_state, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+    }
+
 
     // һ��rigidbody��Ӧһ����ײ��
     std::vector<RigidBody*> possible_collision;
+
 private:
 
     // const quantities
@@ -130,6 +139,7 @@ private:
     // sate variables
     glm::vec3 Transformation;
     glm::mat4 Rotation_state;
+
 
     glm::vec3 Pt;
     glm::vec3 Lt;

@@ -282,11 +282,11 @@ glm::vec4 face_function(glm::vec3 p, glm::vec3 n) {
 }
 
 bool Is_Same_dir(glm::vec3 vector1, glm::vec3 vector2) {
-	float dx = vector1.x / vector2.x;
-	//float dy = vector1.y() / vector2.y();
-	//float dz = vector1.z() / vector2.z();
-	if (dx > 0) return true;		//比值大于0，同向
-	else return false;				//比值小于0，反向
+    float dx = vector1.x / vector2.x;
+    //float dy = vector1.y() / vector2.y();
+    //float dz = vector1.z() / vector2.z();
+    if (dx > 0) return true;		//比值大于0，同向
+    else return false;				//比值小于0，反向
 }
 
 std::vector<glm::vec3> calculate_edge(Segment line1, Segment line2, Segment line3, Segment line4) {
@@ -332,24 +332,24 @@ std::vector<glm::vec3> calculate_edge(Segment line1, Segment line2, Segment line
 
 
 float solution_of_functions(glm::vec3 func1, glm::vec3 func2) {
-	if (func2.y != 0) {
-		if ((func1.x - func1.y / func2.y * func2.x) != 0) {
-			return (func1.z - func1.y / func2.y * func2.z) / (func1.x - func1.y / func2.y * func2.x);
-		}
-		else {
-			printf("error1!\n");
-			return -1;
-		}
-	}
-	else {
-		if (func2.x != 0) {
-			return func2.z / func2.x;
-		}
-		else {
-			printf("error2!\n");
-			return -1;
-		}
-	}
+    if (func2.y != 0) {
+        if ((func1.x - func1.y / func2.y * func2.x) != 0) {
+            return (func1.z - func1.y / func2.y * func2.z) / (func1.x - func1.y / func2.y * func2.x);
+        }
+        else {
+            printf("error1!\n");
+            return -1;
+        }
+    }
+    else {
+        if (func2.x != 0) {
+            return func2.z / func2.x;
+        }
+        else {
+            printf("error2!\n");
+            return -1;
+        }
+    }
 }
 
 glm::vec3 solution_lines_vertex(Line line1, Line line2) {
@@ -397,33 +397,33 @@ Line calculate_line(glm::vec4 func_1f, glm::vec4 func_2f, glm::vec3 n1, glm::vec
 }
 
 bool SelectSegment(std::vector<float> v1, std::vector<float> v2, Line line, Segment& line_seg) {		//如果存在 就一定是有两个交点？（有待确认）
-	float t_min = fmax(fmin(v1[0], v1[1]), fmin(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_min
-	float t_max = fmin(fmax(v1[0], v1[1]), fmax(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_max
+    float t_min = fmax(fmin(v1[0], v1[1]), fmin(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_min
+    float t_max = fmin(fmax(v1[0], v1[1]), fmax(v2[0], v2[1]));		//取交集[t_min, t_max]中的t_max
 
-	if (t_min > t_max) return false;			//如果t_min > t_max, 说明disjoint， 不设置line segment
-	else {								//如果t_min <= t_max, 说明交集存在， 设置line segment
-		line_seg.start = line.ori + t_min * line.dir;
-		line_seg.end = line.ori + t_max * line.dir;
-		return true;
-	}
+    if (t_min > t_max) return false;			//如果t_min > t_max, 说明disjoint， 不设置line segment
+    else {								//如果t_min <= t_max, 说明交集存在， 设置line segment
+        line_seg.start = line.ori + t_min * line.dir;
+        line_seg.end = line.ori + t_max * line.dir;
+        return true;
+    }
 }
 
 int judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3> face_b, Line line, Segment line_segment) {
-	std::vector<Line> face_a_lines;
-	std::vector<Line> face_b_lines;
-	std::vector<Segment> face_a_segs;
-	std::vector<Segment> face_b_segs;
-	for (int i = 1; i < 4; i++) {			//将面a和面b的四条边各自存放到face_a_lines和face_b_lines中		以及以线段形式存放在face_a_segs和face_b_segs
-		Line curr_a_line(face_a[i - 1], face_a[i] - face_a[i - 1]);		//Line这个类的dir变量或许需要取normalize
-		Line curr_b_line(face_b[i - 1], face_b[i] - face_b[i - 1]);
-		Segment curr_a_seg(face_a[i - 1], face_a[i]);
-		Segment curr_b_seg(face_b[i - 1], face_b[i]);
+    std::vector<Line> face_a_lines;
+    std::vector<Line> face_b_lines;
+    std::vector<Segment> face_a_segs;
+    std::vector<Segment> face_b_segs;
+    for (int i = 1; i < 4; i++) {			//将面a和面b的四条边各自存放到face_a_lines和face_b_lines中		以及以线段形式存放在face_a_segs和face_b_segs
+        Line curr_a_line(face_a[i - 1], face_a[i] - face_a[i - 1]);		//Line这个类的dir变量或许需要取normalize
+        Line curr_b_line(face_b[i - 1], face_b[i] - face_b[i - 1]);
+        Segment curr_a_seg(face_a[i - 1], face_a[i]);
+        Segment curr_b_seg(face_b[i - 1], face_b[i]);
 
-		face_a_lines.push_back(curr_a_line);
-		face_b_lines.push_back(curr_b_line);
-		face_a_segs.push_back(curr_a_seg);
-		face_b_segs.push_back(curr_b_seg);
-	}
+        face_a_lines.push_back(curr_a_line);
+        face_b_lines.push_back(curr_b_line);
+        face_a_segs.push_back(curr_a_seg);
+        face_b_segs.push_back(curr_b_seg);
+    }
 
     Line curr_a_line(face_a[0], face_a[3] - face_a[0]);
     Line curr_b_line(face_b[0], face_b[3] - face_b[0]);
@@ -436,39 +436,37 @@ int judge_line_possibility(std::vector<glm::vec3> face_a, std::vector<glm::vec3>
     face_b_segs.push_back(curr_b_seg);
 
 
-	//std::vector<glm::vec3> intersection_vec_a;
-	//std::vector<glm::vec3> intersection_vec_b;
-	std::vector<float> intersection_vec_a;
-	std::vector<float> intersection_vec_b;
-	for (int i = 0; i < face_a_lines.size(); i++) {
-		glm::vec3 intersection_a = solution_lines_vertex(face_a_lines[i], line);		//计算交线与面a第i条边的交点坐标
-		glm::vec3 intersection_b = solution_lines_vertex(face_b_lines[i], line);		//计算交线与面b第i条边的交点坐标
-		//print_vec3(intersection_a);
-		//print_vec3(intersection_b);
-		if (intersection_a == glm::vec3(-1,-1,-1) || intersection_b == glm::vec3(-1,-1,-1)) {
+    //std::vector<glm::vec3> intersection_vec_a;
+    //std::vector<glm::vec3> intersection_vec_b;
+    std::vector<float> intersection_vec_a;
+    std::vector<float> intersection_vec_b;
+    for (int i = 0; i < face_a_lines.size(); i++) {
+        glm::vec3 intersection_a = solution_lines_vertex(face_a_lines[i], line);		//计算交线与面a第i条边的交点坐标
+        glm::vec3 intersection_b = solution_lines_vertex(face_b_lines[i], line);		//计算交线与面b第i条边的交点坐标
+        if (intersection_a == glm::vec3(-1,-1,-1) || intersection_b == glm::vec3(-1,-1,-1)) {
             return -1;
-		}
+        }
 
-		glm::vec3 check_line1_a = face_a_segs[i].start - intersection_a;			//得到从交点到面a第i条边第一个顶点的向量
-		glm::vec3 check_line2_a = face_a_segs[i].end - intersection_a;			//得到从交点到面a第i条边第二个顶点的向量
+        glm::vec3 check_line1_a = face_a_segs[i].start - intersection_a;			//得到从交点到面a第i条边第一个顶点的向量
+        glm::vec3 check_line2_a = face_a_segs[i].end - intersection_a;			//得到从交点到面a第i条边第二个顶点的向量
 
-		glm::vec3 check_line1_b = face_b_segs[i].start - intersection_b;			//得到从交点到面b第i条边第一个顶点的向量
-		glm::vec3 check_line2_b = face_b_segs[i].end - intersection_b;			//得到从交点到面b第i条边第二个顶点的向量
+        glm::vec3 check_line1_b = face_b_segs[i].start - intersection_b;			//得到从交点到面b第i条边第一个顶点的向量
+        glm::vec3 check_line2_b = face_b_segs[i].end - intersection_b;			//得到从交点到面b第i条边第二个顶点的向量
 
-		if (!Is_Same_dir(check_line1_a, check_line2_a) && !Is_Same_dir(check_line1_b, check_line2_b)) {	//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
-			float t1 = (intersection_a - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t1
-			float t2 = (intersection_b - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t2
-			//float t2 = (intersection_a - line.ori).y() / line.dir.y();
-			//float t3 = (intersection_a - line.ori).z() / line.dir.z();
-			intersection_vec_a.push_back(t1);
-			intersection_vec_b.push_back(t2);
-			if (_isnanf(t1) || _isnanf(t2)) return -1;						//遇到nan, 返回-1
-		}
-	}
-	if (intersection_vec_a.empty() || intersection_vec_b.empty()) return false;
-	else {
-		return SelectSegment(intersection_vec_a, intersection_vec_b, line, line_segment);
-	}
+        if (!Is_Same_dir(check_line1_a, check_line2_a) && !Is_Same_dir(check_line1_b, check_line2_b)) {	//两个向量反向，说明交点intersection在线段两端中间 是一个有效的交点
+            float t1 = (intersection_a - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t1
+            float t2 = (intersection_b - line.ori).x / line.dir.x;			//计算交点对应line方程的参数t2
+            //float t2 = (intersection_a - line.ori).y() / line.dir.y();
+            //float t3 = (intersection_a - line.ori).z() / line.dir.z();
+            intersection_vec_a.push_back(t1);
+            intersection_vec_b.push_back(t2);
+            if (t1 == NAN || t2 == NAN) return -1;						//遇到nan, 返回-1
+        }
+    }
+    if (intersection_vec_a.empty() || intersection_vec_b.empty()) return false;
+    else {
+        return SelectSegment(intersection_vec_a, intersection_vec_b, line, line_segment);
+    }
 }
 Contact check_collision(RigidBody& a, RigidBody& b) {
     Contact f_v;
@@ -608,7 +606,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             num_of_face_a += 1;
         }
     }
-    
+
     for (int i = 0; i < 6; i++) {
         if (!face_line_number_b[i].empty()) {
             target_face_b.push_back(i);
@@ -658,7 +656,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
             return f_v;
         }
     }
-    
+
     return f_v;
 }
 
@@ -720,13 +718,14 @@ void process_gravity_floor(RigidBody &body) {
             }
 
             // 更新动量
-
-
-            glm::vec3 delt_v = glm::dot(glm::vec3(0, -1.0f, 0.0f), body.get_vt()) * glm::vec3(0, 1.0f, 0.0f);
+            float v_rel = glm::dot(glm::vec3(0, -1.0f, 0.0f), body.get_vt());
+            glm::vec3 delt_v = glm::vec3(0, 1.0f, 0.0f) * v_rel - body.get_vt();
             delt_v *= elasticity;
             glm::vec3 J = delt_v * body.get_mass();
             if (body.get_Pt().y < 0) {
                 J += glm::vec3(0, -body.get_Pt().y, 0);
+                std::cout<<"J: "<<std::endl;
+                print_vec3(J);
                 body.sum_Pt(J);
             }
 
@@ -735,22 +734,22 @@ void process_gravity_floor(RigidBody &body) {
             delt_v = glm::vec3(0, -1.0f, 0.0f);
             delt_v *= GRAVITY * time_interval * slow;
             glm::vec3 J_gravity = delt_v * body.get_mass();
-            J += J_gravity * 5.0f;
+            J += J_gravity;
 
 
             // 更新角动量
             glm::vec3 re_xt = hit_point - body.get_transformation();
             //remove_noise(re_xt);
-            glm::vec3 tao_impulse = glm::cross(J, re_xt);
+            glm::vec3 tao_impulse = glm::cross(J, re_xt) * 0.5f;
             //std::cout<<"re_xt"<<std::endl;
             //print_vec3(re_xt);
             //std::cout<<"J"<<std::endl;
             //print_vec3(J);
 
-            //std::cout<<"tao_impulse"<<std::endl;
-            //print_vec3(tao_impulse);
-            // remove_noise(tao_impulse);
-            //print_vec3(tao_impulse);
+            std::cout<<"tao_impulse"<<std::endl;
+            print_vec3(tao_impulse);
+            remove_noise(tao_impulse);
+            //cprint_vec3(tao_impulse);
 
             body.sum_Lt(tao_impulse);
             return ;
@@ -783,7 +782,7 @@ void move_bodies(RigidBody &body) {
     } else {
         curr_w = glm::vec3(0);
     }
-    	//计算并更新此时刻物体的 angular velocity
+    //计算并更新此时刻物体的 angular velocity
     body.UpdateStates(curr_v, curr_w);
 }
 
@@ -792,13 +791,13 @@ void process_rest(RigidBody &body) {
     //std::cout<< glm::length(body.get_Pt())<<std::endl;
     if (glm::length(body.get_Pt()) <= 1/MASS) {
         body.reset_Pt();
-    } else if (glm::length(body.get_Lt()) <= 0.01f) {
+    } else if (glm::length(body.get_Lt()) <= 0.1f) {
         body.reset_Lt();
     } else {
         // 空气阻力等衰减
         body.sum_Pt(-0.01f*body.get_Pt());
 
-        //body.sum_Lt(-0.1f*body.get_Lt());
+        body.sum_Lt(-0.01f*body.get_Lt());
     }
 }
 
@@ -824,8 +823,8 @@ void update_cube_positions(std::vector<RigidBody> &cubes) {
         while (!cube.possible_collision.empty()) {
             RigidBody *tem = cube.possible_collision[cube.possible_collision.size() - 1];
             Contact tem_contact = check_collision(*tem, cube);
-            if (tem_contact.is_valid) {
-                contacts.push_back(tem_contact);
+            if (false) {
+                // contacts.push_back(tem_contact);
             } else if (glm::length(tem->get_transformation() - cube.get_transformation()) < 1.0f) {
                 Contact ball_volume;
                 ball_volume.a = tem;
@@ -893,7 +892,7 @@ void check_calculate_line() {
     Line result = calculate_line(func_1f, func_2f, a_n, b_n);
     glm::vec3 test_p(1.5,0.25,0.5);
     if (glm::normalize(test_p - result.ori) != glm::normalize(result.dir)
-    || glm::normalize(b - result.ori) != glm::normalize(result.dir)) {
+        || glm::normalize(b - result.ori) != glm::normalize(result.dir)) {
         std::cout<<"calculate_line error!"<<std::endl;
     }
 
@@ -927,7 +926,7 @@ void check_calculate_line() {
 
     // 线过两个面
     if(!judge_line_possibility(a_points, b_points, result, line_segment)
-    && (line_segment.start != glm::vec3(0.5,0.25,0.5) && line_segment.start != glm::vec3(-0.5,0.25,0.5))
+       && (line_segment.start != glm::vec3(0.5,0.25,0.5) && line_segment.start != glm::vec3(-0.5,0.25,0.5))
        && (line_segment.end != glm::vec3(0.5,0.25,0.5) && line_segment.end != glm::vec3(-0.5,0.25,0.5))) {
         std::cout<<"judge error 1"<<std::endl;
     }
@@ -980,7 +979,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
+    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1172,8 +1171,8 @@ int main()
 
     // 以下为使用方法
     CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 30));
-    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
-    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
+    //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
+    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 30));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 
@@ -1191,8 +1190,8 @@ int main()
         //std::cout<<"before: "<<std::endl;
         //std::cout<<"Xt: ";
         //print_vec3(CubePositions[0].get_transformation());
-        //std::cout<<"Lt: ";
-        //print_vec3(CubePositions[0].get_Lt());
+        std::cout<<"Lt: ";
+        print_vec3(CubePositions[0].get_Lt());
         //std::cout<<"Angle: ";
         //std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());
