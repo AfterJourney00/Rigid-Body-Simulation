@@ -271,8 +271,10 @@ void process_collision(Contact con) {
         glm::vec3 tao_b_impulse = glm::cross((con.particle_position - con.b->get_transformation()), Jb);
         // 更新body a和b的动量和角动量
 
-        //remove_noise(tao_a_impulse);
-        //remove_noise(tao_b_impulse);
+        remove_noise(tao_a_impulse);
+        remove_noise(tao_b_impulse);
+        remove_noise(Ja);
+        remove_noise(Jb);
 
         con.a->sum_Pt(Ja);
         con.a->sum_Lt(tao_a_impulse * 0.1f);
@@ -784,11 +786,11 @@ void process_gravity_floor(RigidBody &body) {
             std::cout<<glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0))<<std::endl;
 
 
-            if (glm::length(body.get_Pt()) < 10.0f || glm::length(body.get_Lt()) < 10.0f) {
-                if (glm::length(body.get_Pt()) < 6.0f && glm::normalize(bottom_normal) != glm::vec3(0,1,0)) {
+            if (glm::length(body.get_Pt()) < 20.0f || glm::length(body.get_Lt()) < 10.0f) {
+                if (glm::length(body.get_Pt()) < 6.0f && glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0)) < 0.95) {
                     // 慢速归位
-                    if (glm::length(body.get_Pt()) < 2.0f && glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0)) < 0.8) {
-                        body.sum_Lt(body.get_Lt() * -0.2f);
+                    if (glm::length(body.get_Pt()) < 2.0f && glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0)) < 0.95) {
+                        body.sum_Lt(body.get_Lt() * -0.9f);
                         if (glm::length(tao_steady) < 0.01) {
                             body.sum_Lt( tao_steady);
                         } else {
@@ -806,7 +808,7 @@ void process_gravity_floor(RigidBody &body) {
                     }
                 } else {
                     // 减速过程
-                    body.sum_Lt(body.get_Lt() * -0.6f);
+                    body.sum_Lt(body.get_Lt() * -0.8f);
                     //std::cout<<"tao_steady"<<std::endl;
                     //print_vec3(0.5f * tao_steady + 0.5f * tao_impulse);
 
@@ -973,11 +975,6 @@ void check_calculate_line() {
     std::vector<glm::vec3> vec;
     vec = calculate_edge(seg1, seg2, seg3, seg4);
 
-
-
-
-
-
     std::vector<glm::vec3> a_points;
     a_points.emplace_back(0.5,0.5,0.5);
     a_points.emplace_back(0.5,-0.5,0.5);
@@ -1049,7 +1046,7 @@ int main()
     //check_calculate_line();
     //exit(0);
 
-    std::string root_dir = "C:/Users/38182/Desktop/cg learning OpenGL/project/Rigid-Body-Simulation";
+    std::string root_dir = "/Users/TT/Desktop/CS171/RIgif-Body-Simulation";
     int len = root_dir.length();
     std::string model_dir = root_dir + "/model";
 
@@ -1240,9 +1237,14 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
+    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 1.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 3.0f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+
     CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
     CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
-    CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 30));
+    //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 45));
+    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.0f, 0.0f), glm::vec3(20,0,0),glm::vec3(0,0,1), 45));
     CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
     CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
 
@@ -1250,9 +1252,9 @@ int main()
     initPMV(my_shader, lampShader, pointLightPositions);
 
     while (!glfwWindowShouldClose(window))
-    {	
-		clock_t startTime, endTime;
-		startTime = clock();		//计时开始
+    {
+        clock_t startTime, endTime;
+        startTime = clock();		//计时开始
         // input
         // -----
         processInput(window);
@@ -1343,9 +1345,9 @@ int main()
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
 
-		endTime = clock();			//计时结束
-		clock_t duration = endTime - startTime;		//本次while经过了duration
-		if (duration < time_interval) _sleep(time_interval - duration);		//如果duration太小，暂停至time_interval
+        endTime = clock();			//计时结束
+        clock_t duration = endTime - startTime;		//本次while经过了duration
+        //if (duration < time_interval) _sleep(time_interval - duration);		//如果duration太小，暂停至time_interval
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
