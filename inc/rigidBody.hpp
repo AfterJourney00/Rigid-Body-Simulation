@@ -15,14 +15,17 @@ public:
         this->Pt = glm::vec3(0.0f);
         this->Lt = glm::vec3(0.0f);
         this->angle = 0;
+        this->last_dir = glm::vec3(0,1,0);
+        this->Rotation_state = glm::mat4(1);
     }
 
     RigidBody(glm::vec3 Xt, double m, glm::vec3 rotate, float an) {
         this->Transformation = Xt;
         this->mass = m;
         this->Pt = glm::vec3(0.0f);
-        this->Lt = rotate;
         this->angle = an;
+        this->last_dir = rotate;
+        this->Rotation_state = glm::rotate(glm::mat4(1), glm::radians(an), rotate);
     }
 
     glm::vec3 get_transformation () {
@@ -30,15 +33,15 @@ public:
     }
 
     glm::vec3 get_rotation_dir () {
-        if (this->Wt == glm::vec3(0)){
-            return glm::vec3(0);
+        if (this->Wt == glm::vec3(0)) {
+            return this->last_dir;
         }
         return glm::normalize(this->Wt);
     }
 
-	float get_rotation_angle() {
-		return this->angle;
-	}
+    float get_rotation_angle() {
+        return this->angle;
+    }
 
     glm::vec3 get_vt() {
         return Vt;
@@ -47,17 +50,17 @@ public:
         return Wt;
     }
 
-	glm::vec3 get_Pt() {
-		return this->Pt;
-	}
+    glm::vec3 get_Pt() {
+        return this->Pt;
+    }
 
-	glm::vec3 get_Lt() {
-		return this->Lt;
-	}
+    glm::vec3 get_Lt() {
+        return this->Lt;
+    }
 
-	double get_Ibody() {
-		return this->Ibody;
-	}
+    double get_Ibody() {
+        return this->Ibody;
+    }
 
     float get_mass() {
         return mass;
@@ -80,44 +83,53 @@ public:
         this->Lt += Iinv * new_l;
     }
 
-	void setForce(glm::vec3 f) {
-		this->Ft = f;
-	}
+    void setForce(glm::vec3 f) {
+        this->Ft = f;
+    }
 
-	void setIbody(double mass, float r) {
-		this->Ibody = mass * powf(r,2) / 6.0f;		//正方体转动惯量的公式
+    void setIbody(float m, float r) {
+        this->Ibody = m * powf(r,2) / 6.0f;		//正方体转动惯量的公式
         this->Iinv = 1 / Ibody;
-	}
+    }
 
-	void UpdateStates(glm::vec3 vt, glm::vec3 wt) {		//物体状态改变更新函数
-		this->Vt = vt;					//更新 linear velocity
-		this->Wt = wt;					//更新 angular velocity
+    void UpdateStates(glm::vec3 vt, glm::vec3 wt) {		//物体状态改变更新函数
+        this->Vt = vt;					//更新 linear velocity
+        this->Wt = wt;					//更新 angular velocity
 
-		this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
-		this->angle += glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
-	}
+        // record last dir
+        if (wt != glm::vec3(0)) {
+            this->last_dir = glm::normalize(wt);
+        }
+
+        this->Transformation += vt * time_interval;		//更新质心位移（位置改变）			time_interval还未定义
+        this->angle = glm::length(wt) * time_interval;		//更新物体旋转角度				time_interval还未定义
+    }
 
     glm::mat4 to_world() {
-        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 model = glm::mat4(1);
         model = glm::translate(model, this->get_transformation());
-        if (glm::dot(this->get_rotation_dir(), glm::vec3(1)) != 0) {
-            model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        model = glm::rotate(model, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        model *= Rotation_state;
+        // 更新rotate state
+        this->Rotation_state = glm::rotate(this->Rotation_state, glm::radians(this->get_rotation_angle()), this->get_rotation_dir());
+        if (model == Rotation_state) {
+            std::cout<<"ERROR"<<std::endl;
         }
         return model;
     }
 
 
-	// һ��rigidbody��Ӧһ����ײ��
-	std::vector<RigidBody*> possible_collision;
+    // һ��rigidbody��Ӧһ����ײ��
+    std::vector<RigidBody*> possible_collision;
 private:
 
     // const quantities
     double mass;
-    double Ibody;
+    float Ibody;
 
     // sate variables
     glm::vec3 Transformation;
-    glm::mat3 Rotation;
+    glm::mat4 Rotation_state;
 
     glm::vec3 Pt;
     glm::vec3 Lt;
@@ -126,7 +138,8 @@ private:
     float Iinv;
     glm::vec3 Vt;
     glm::vec3 Wt;
-	float angle;
+    float angle;
+    glm::vec3 last_dir;
 
     // computed quantities
     glm::vec3 Ft;
@@ -136,37 +149,37 @@ private:
 class Contact {
 public:
     Contact () {};
-	RigidBody *a;
-	RigidBody *b;
+    RigidBody *a;
+    RigidBody *b;
 
-	glm::vec3 particle_position;
-	glm::vec3 face_normal;
+    glm::vec3 particle_position;
+    glm::vec3 face_normal;
 
-	glm::vec3 edge1;
-	glm::vec3 edge2;
+    glm::vec3 edge1;
+    glm::vec3 edge2;
 
-	bool is_face_vertex;
-	bool is_valid;
+    bool is_face_vertex;
+    bool is_valid;
 };
 
 class Line {
 public:
-	Line(glm::vec3 o, glm::vec3 d) {
-		dir = glm::normalize(d);
-		ori = o;
-	};
-	Line() {};
-	glm::vec3 dir;
-	glm::vec3 ori;
+    Line(glm::vec3 o, glm::vec3 d) {
+        dir = glm::normalize(d);
+        ori = o;
+    };
+    Line() {};
+    glm::vec3 dir;
+    glm::vec3 ori;
 };
 
 class Segment {
 public:
-	Segment(glm::vec3 s, glm::vec3 e) {
-		start = s;
-		end = e;
-	};
-	Segment(){};
-	glm::vec3 start;
-	glm::vec3 end;
+    Segment(glm::vec3 s, glm::vec3 e) {
+        start = s;
+        end = e;
+    };
+    Segment(){};
+    glm::vec3 start;
+    glm::vec3 end;
 };

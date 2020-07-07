@@ -236,9 +236,10 @@ RigidBody create_body(glm::vec3 init_pos, glm::vec3 init_P = glm::vec3(0,0,0), g
 }
 
 void remove_noise(glm::vec3 &tao_impulse) {
-    tao_impulse.x = tao_impulse.x < 0.0001 ? 0 : tao_impulse.x;
-    tao_impulse.y = tao_impulse.y < 0.0001 ? 0 : tao_impulse.y;
-    tao_impulse.z = tao_impulse.z < 0.0001 ? 0 : tao_impulse.z;
+    float accuracy = 0.01f;
+    tao_impulse.x = tao_impulse.x < accuracy && tao_impulse.x > -accuracy ? 0 : tao_impulse.x;
+    tao_impulse.y = tao_impulse.y < accuracy && tao_impulse.y > -accuracy ? 0 : tao_impulse.y;
+    tao_impulse.z = tao_impulse.z < accuracy && tao_impulse.z > -accuracy ? 0 : tao_impulse.z;
 }
 
 // 返回值修改a，b中的成员变量
@@ -651,7 +652,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
 
 
 void process_gravity_floor(RigidBody &body) {
-    if (body.get_transformation().y < 0.7 && glm::dot(body.get_vt(), glm::vec3(0,1,0)) < 0) {
+    if (body.get_transformation().y < 0.7) {
         //std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
@@ -713,21 +714,38 @@ void process_gravity_floor(RigidBody &body) {
             glm::vec3 J = delt_v * body.get_mass();
             if (body.get_Pt().y < 0) {
                 J += glm::vec3(0, -body.get_Pt().y, 0);
+                body.sum_Pt(J);
             }
-            body.sum_Pt(J);
+
+            //J *= 0.1f;
+
+            delt_v = glm::vec3(0, -1.0f, 0.0f);
+            delt_v *= GRAVITY * time_interval * slow;
+            glm::vec3 J_gravity = delt_v * body.get_mass();
+            J += J_gravity * 5.0f;
+
 
             // 更新角动量
             glm::vec3 re_xt = hit_point - body.get_transformation();
-            remove_noise(re_xt);
-            glm::vec3 tao_impulse = glm::cross(re_xt, J);
-            remove_noise(tao_impulse);
+            //remove_noise(re_xt);
+            glm::vec3 tao_impulse = glm::cross(J, re_xt);
+            //std::cout<<"re_xt"<<std::endl;
+            //print_vec3(re_xt);
+            //std::cout<<"J"<<std::endl;
+            //print_vec3(J);
+
+            std::cout<<"tao_impulse"<<std::endl;
+            print_vec3(tao_impulse);
+            // remove_noise(tao_impulse);
+            print_vec3(tao_impulse);
 
             body.sum_Lt(tao_impulse);
             return ;
         }
 
 
-    } else if (body.get_transformation().y >= 0.7) {
+    }
+    if (body.get_transformation().y >= 0.7) {
         // 物体没有接触地面
         // std::cout<<"gravity"<<std::endl;
         glm::vec3 delt_v = glm::vec3(0, -1.0f, 0.0f);
@@ -744,13 +762,14 @@ void process_gravity_floor(RigidBody &body) {
 
 void move_bodies(RigidBody &body) {
     // 根据动量角动量移动物体
-    glm::vec3 curr_v = body.get_Pt() / (float) MASS;
+    glm::vec3 curr_v = body.get_Pt() / MASS;
     //计算并更新此时刻物体的 linear velocity
     glm::vec3 curr_w;
     if (body.get_Lt() != glm::vec3(0)) {
         curr_w = body.get_Lt() / (float) body.get_Ibody();
+    } else {
+        curr_w = glm::vec3(0);
     }
-    curr_w = glm::vec3(0);
     	//计算并更新此时刻物体的 angular velocity
     body.UpdateStates(curr_v, curr_w);
 }
@@ -760,13 +779,14 @@ void process_rest(RigidBody &body) {
     //std::cout<< glm::length(body.get_Pt())<<std::endl;
     if (glm::length(body.get_Pt()) <= 1/MASS) {
         body.reset_Pt();
+    } else if (glm::length(body.get_Lt()) <= 0.01f) {
+        body.reset_Lt();
     } else {
         // 空气阻力等衰减
         body.sum_Pt(-0.01f*body.get_Pt());
-        //body.reset_Lt();
-        //body.sum_Lt(-0.01f*body.get_Lt());
+
+        //body.sum_Lt(-0.1f*body.get_Lt());
     }
-    std::cout<<std::endl;
 }
 
 
@@ -1138,7 +1158,7 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f)));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 30));
     //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
     //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
 
@@ -1156,10 +1176,10 @@ int main()
         changePMV(my_shader, lampShader);
 
         //std::cout<<"before: "<<std::endl;
-        std::cout<<"Xt: ";
-        print_vec3(CubePositions[0].get_transformation());
-        std::cout<<"Pt: ";
-        print_vec3(CubePositions[0].get_Pt());
+        //std::cout<<"Xt: ";
+        //print_vec3(CubePositions[0].get_transformation());
+        std::cout<<"Lt: ";
+        print_vec3(CubePositions[0].get_Lt());
         //std::cout<<"Angle: ";
         //std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());
