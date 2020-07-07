@@ -37,10 +37,10 @@ float OY = 0;
 float OZ = 0;
 float currentFrame;
 
-#define MASS 10
 #define GRAVITY 10
 const float slow = 0.06;
 const float elasticity = 0.4;
+const float MASS = 10.0f;
 
 Camera *camera;
 
@@ -651,7 +651,7 @@ Contact check_collision(RigidBody& a, RigidBody& b) {
 
 
 void process_gravity_floor(RigidBody &body) {
-    if (body.get_transformation().y < 0.8 && glm::dot(body.get_vt(), glm::vec3(0,1,0)) < 0) {
+    if (body.get_transformation().y < 0.7 && glm::dot(body.get_vt(), glm::vec3(0,1,0)) < 0) {
         //std::cout<<"bounce"<<std::endl;
         // 物体接触了地面, 去除重力影响， 给重力一半的支持力
         // 初始化八个顶点body space
@@ -707,20 +707,13 @@ void process_gravity_floor(RigidBody &body) {
 
             // 更新动量
 
-            if (body.get_Pt().y > 2) {
-                // 初次碰撞瞬间失去一部分动量
-                body.sum_Pt(glm::vec3(0,-(body.get_Pt().y / 2),0));
-            }
-
-            if (body.get_transformation().y < 0.6 && body.get_Pt().y < 1) {
-                body.reset_Pt();
-            }
-
 
             glm::vec3 delt_v = glm::dot(glm::vec3(0, -1.0f, 0.0f), body.get_vt()) * glm::vec3(0, 1.0f, 0.0f);
-            // 反弹为0.5的重力
             delt_v *= elasticity;
             glm::vec3 J = delt_v * body.get_mass();
+            if (body.get_Pt().y < 0) {
+                J += glm::vec3(0, -body.get_Pt().y, 0);
+            }
             body.sum_Pt(J);
 
             // 更新角动量
@@ -729,22 +722,24 @@ void process_gravity_floor(RigidBody &body) {
             glm::vec3 tao_impulse = glm::cross(re_xt, J);
             remove_noise(tao_impulse);
 
-            //body.sum_Lt(tao_impulse);
+            body.sum_Lt(tao_impulse);
             return ;
         }
 
 
+    } else if (body.get_transformation().y >= 0.7) {
+        // 物体没有接触地面
+        // std::cout<<"gravity"<<std::endl;
+        glm::vec3 delt_v = glm::vec3(0, -1.0f, 0.0f);
+        delt_v *= GRAVITY * time_interval * slow;
+        glm::vec3 J = delt_v * body.get_mass();
+        //std::cout<<"before: "<<std::endl;
+        //print_vec3(body.get_Pt());
+        body.sum_Pt(J);
+        //std::cout<<"after: "<<std::endl;
+        //print_vec3(body.get_Pt());
     }
-    // 物体没有接触地面
-    // std::cout<<"gravity"<<std::endl;
-    glm::vec3 delt_v = glm::vec3(0, -1.0f, 0.0f);
-    delt_v *= GRAVITY * time_interval * slow;
-    glm::vec3 J = delt_v * body.get_mass();
-    //std::cout<<"before: "<<std::endl;
-    //print_vec3(body.get_Pt());
-    body.sum_Pt(J);
-    //std::cout<<"after: "<<std::endl;
-    //print_vec3(body.get_Pt());
+
 }
 
 void move_bodies(RigidBody &body) {
@@ -761,14 +756,17 @@ void move_bodies(RigidBody &body) {
 }
 
 void process_rest(RigidBody &body) {
-    if (glm::length(body.get_Pt()) < MASS/11) {
+    //print_vec3(body.get_Pt());
+    //std::cout<< glm::length(body.get_Pt())<<std::endl;
+    if (glm::length(body.get_Pt()) <= 1/MASS) {
         body.reset_Pt();
+    } else {
+        // 空气阻力等衰减
+        body.sum_Pt(-0.01f*body.get_Pt());
+        //body.reset_Lt();
+        //body.sum_Lt(-0.01f*body.get_Lt());
     }
-
-    // 空气阻力等衰减
-    body.sum_Pt(-0.01f*body.get_Pt());
-    //body.reset_Lt();
-    //body.sum_Lt(-0.01f*body.get_Lt());
+    std::cout<<std::endl;
 }
 
 
@@ -1140,7 +1138,7 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 2.5f, 0.0f)));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f)));
     //CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5));
     //CubePositions.push_back(create_body(glm::vec3(4.0f, 4.0f, 0.0f), glm::vec3(-20,0,0)));
 
@@ -1160,10 +1158,10 @@ int main()
         //std::cout<<"before: "<<std::endl;
         std::cout<<"Xt: ";
         print_vec3(CubePositions[0].get_transformation());
-        std::cout<<"Lt: ";
-        print_vec3(CubePositions[0].get_Lt());
-        std::cout<<"Angle: ";
-        std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
+        std::cout<<"Pt: ";
+        print_vec3(CubePositions[0].get_Pt());
+        //std::cout<<"Angle: ";
+        //std::cout<<CubePositions[0].get_rotation_angle()<<std::endl;
         //print_vec3(CubePositions[1].get_transformation());
         update_cube_positions(CubePositions);
         //std::cout<<"after: "<<std::endl;
