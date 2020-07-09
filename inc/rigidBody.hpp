@@ -156,22 +156,6 @@ private:
     glm::vec3 Tt;
 };
 
-class Contact {
-public:
-    Contact () {};
-    RigidBody *a;
-    RigidBody *b;
-
-    glm::vec3 particle_position;
-    glm::vec3 face_normal;
-
-    glm::vec3 edge1;
-    glm::vec3 edge2;
-
-    bool is_face_vertex;
-    bool is_valid;
-};
-
 class Line {
 public:
     Line(glm::vec3 o, glm::vec3 d) {
