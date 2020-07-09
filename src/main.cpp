@@ -95,7 +95,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void initPMV(Shader my_shader, Shader light_shader, const glm::vec3 pointLightPositions[]) {
-    camera = new Camera (glm::vec3(0.0f, 2.0f, 5.0f));
+    camera = new Camera (glm::vec3(0.0f, 6.0f, 8.0f));
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
     my_shader.use();
@@ -874,7 +874,7 @@ void process_gravity_floor(RigidBody &body) {
 
             remove_noise(tao_impulse);
 
-            std::cout<<glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0))<<std::endl;
+            //std::cout<<glm::dot(glm::normalize(bottom_normal), glm::vec3(0,1,0))<<std::endl;
 
 
             if (glm::length(body.get_Pt()) < 20.0f || glm::length(body.get_Lt()) < 10.0f) {
@@ -952,7 +952,7 @@ void process_rest(RigidBody &body) {
     if (glm::length(body.get_Pt()) <= 0.1f) {
         body.reset_Pt();
     } else if (glm::length(body.get_Lt()) <= 0.01f) {
-        std::cout<<"rest Lt"<<std::endl;
+        //std::cout<<"rest Lt"<<std::endl;
         body.reset_Lt();
     } else {
         // 空气阻力等衰减
@@ -1326,19 +1326,28 @@ int main()
     std::vector<RigidBody> CubePositions;
 
     // 以下为使用方法
-    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 1.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
-    //CubePositions.push_back(create_body(glm::vec3(-4.0f, 3.0f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 1.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 5.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 8.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
+
     //CubePositions.push_back(create_body(glm::vec3(-4.0f, 4.5f, 4.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
-    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 5, 100));
-    CubePositions.push_back(create_body(glm::vec3(16.0f, 6.0f, 0.0f), glm::vec3(-40,0,0),glm::vec3(0,0,1), 45));
-    //CubePositions.push_back(create_body(glm::vec3(-16.0f, 6.0f, 0.0f), glm::vec3(40,0,0),glm::vec3(0,0,1), 45));
-    //CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, -0.5f), glm::vec3(0,0,0), glm::vec3(1,1,0), 65, 100));
-    //CubePositions.push_back(create_body(glm::vec3(0.5f, 8.0f, 0.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
+    //CubePositions.push_back(create_body(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 45, 200));
+    CubePositions.push_back(create_body(glm::vec3(0.5f, 2.0f, 0.5f), glm::vec3(20,40,0), glm::vec3(1,1,0), 5, 100));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 6.0f, 11.0f), glm::vec3(0,0,-30),glm::vec3(0,0,1), 45));
+
+    //CubePositions.push_back(create_body(glm::vec3(4.0f, 6.0f, 4.0f), glm::vec3(-20,-5,-20),glm::vec3(0,0,1), 35));
+    //CubePositions.push_back(create_body(glm::vec3(0.5f, 10.0f, 10.0f), glm::vec3(0,0,-20),glm::vec3(0,0,1), 15));
+    CubePositions.push_back(create_body(glm::vec3(-0.5f, 6.0f, -8.0f), glm::vec3(0,0,20),glm::vec3(0,0,1), 65));
+    CubePositions.push_back(create_body(glm::vec3(6.0f, 6.0f, 0.0f), glm::vec3(-20,0,0),glm::vec3(0,0,1), 85));
+    CubePositions.push_back(create_body(glm::vec3(12.0f, 12.0f, 0.0f), glm::vec3(-30,0,0),glm::vec3(0,0,1), 85));
+    CubePositions.push_back(create_body(glm::vec3(0.0f, 8.0f, 10.0f), glm::vec3(0,0,-30),glm::vec3(0,0,1), 85));
+
+    //CubePositions.push_back(create_body(glm::vec3(-10.0f, 6.0f, 0.0f), glm::vec3(20,0,0),glm::vec3(0,0,1), 65));
+    //CubePositions.push_back(create_body(glm::vec3(10.0f, 8.0f, 6.0f), glm::vec3(-30,0,-20),glm::vec3(0,0,1), 45));
+    //CubePositions.push_back(create_body(glm::vec3(-12.0f, 8.0f, -6.0f), glm::vec3(40,0,20),glm::vec3(0,0,1), 45));
+    //CubePositions.push_back(create_body(glm::vec3(1.5f, 6.0f, 1.6f), glm::vec3(0,0,0), glm::vec3(1,1,0), 95, 100));
     //CubePositions.push_back(create_body(glm::vec3(0.0f, 1.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
-    //CubePositions.push_back(create_body(glm::vec3(0.0f, 2.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
-    CubePositions.push_back(create_body(glm::vec3(0.0f, 3.5f, 0.0f), glm::vec3(0,0,0), glm::vec3(0,0,1), 0, 200));
 
     initPMV(my_shader, lampShader, pointLightPositions);
 

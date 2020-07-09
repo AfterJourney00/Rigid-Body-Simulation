@@ -2,3 +2,4 @@
 .idea/
 /src/main__mac.cpp
 CMakeLists.txt
+/glm/
